@@ -369,6 +369,7 @@ body {
 }
 .slip-card.value-card { border-color: rgba(168,85,247,0.4); box-shadow: 0 0 20px rgba(168,85,247,0.08); }
 .slip-card.safe-card  { border-color: rgba(16,185,129,0.3); }
+.slip-card.banker-card { border-color: rgba(245,158,11,0.42); box-shadow: 0 0 22px rgba(245,158,11,0.08); }
 
 .slip-header {
   padding: 14px 16px;
@@ -389,6 +390,7 @@ body {
 .badge-balanced { background: var(--blue-dim);  color: var(--blue);  border: 1px solid rgba(59,130,246,0.3); }
 .badge-aggressive { background: var(--red-dim); color: var(--red);   border: 1px solid rgba(239,68,68,0.3); }
 .badge-value    { background: var(--purple-dim); color: var(--purple); border: 1px solid rgba(168,85,247,0.3); }
+.badge-banker   { background: rgba(245,158,11,0.1); color: var(--gold); border: 1px solid rgba(245,158,11,0.3); }
 .badge-win      { background: var(--green-dim); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
 .badge-loss     { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(239,68,68,0.3); }
 .badge-pending  { background: rgba(245,158,11,0.1); color: var(--gold); border: 1px solid rgba(245,158,11,0.3); }
@@ -745,9 +747,18 @@ def _slip_badge(variant: str) -> str:
         "SAFE": "badge-safe",
         "BALANCED": "badge-balanced",
         "AGGRESSIVE": "badge-aggressive",
+        "BANKER_100": "badge-banker",
         "VALUE": "badge-value",
     }.get(variant, "badge-balanced")
-    return f'<span class="badge {css}">{html.escape(variant)}</span>'
+    label = {
+        "BANKER_100": "100X",
+    }.get(variant, variant)
+    return f'<span class="badge {css}">{html.escape(label)}</span>'
+
+def _slip_title(variant: str) -> str:
+    return {
+        "BANKER_100": "100 Odds Banker",
+    }.get(variant, f"{variant} slip")
 
 def _outcome_badge(outcome) -> str:
     if outcome == "WIN":
@@ -969,13 +980,15 @@ def _render_slip_card(variant: str, slip: dict, kelly_info: dict) -> str:
         card_extra = " value-card"
     elif variant == "SAFE":
         card_extra = " safe-card"
+    elif variant == "BANKER_100":
+        card_extra = " banker-card"
 
     return f"""
     <article class="slip-card{card_extra}">
       <div class="slip-header">
         <div class="slip-title-row">
           {_slip_badge(variant)}
-          <span class="slip-name">{html.escape(variant)} slip</span>
+          <span class="slip-name">{html.escape(_slip_title(variant))}</span>
         </div>
         <span style="color:var(--muted);font-size:.82rem">{stats['legs']} legs</span>
       </div>
@@ -1179,7 +1192,7 @@ def _render_bankroll(bk: dict) -> str:
         <div class="empty">No bets logged yet. Run <code>python log_result.py --log --slip VALUE --stake 5 --odds 3.20</code> to log your first bet.</div>"""
 
     return f"""
-    <div class="section-head"><div><h2>Bankroll tracker</h2><div class="hint">$100 → $1,000,000 goal</div></div></div>
+    <div class="section-head"><div><h2>Bankroll tracker</h2><div class="hint">GHS 100 -> GHS 1,000,000 goal</div></div></div>
     {hero}
     {stats_html}
     {pending_html}

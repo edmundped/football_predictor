@@ -1,12 +1,13 @@
 """
 Daily slip (accumulator) variant generator.
 
-Given a per-fixture prediction table, build four slip variants:
+Given a per-fixture prediction table, build five slip variants:
 
   1. SAFE         — fewer legs, each with very high probability.
   2. BALANCED     — middle risk.
   3. AGGRESSIVE   — longer accumulator, more picks, lower combined prob but higher payout.
-  4. VALUE        — picks where model probability most exceeds market implied probability.
+  4. BANKER_100   — priced picks from the consolidated pool targeting 100+ market odds.
+  5. VALUE        — picks where model probability most exceeds market implied probability.
                     Requires bookmaker odds to be present in the fixtures CSV.
 
 Rules:
@@ -192,6 +193,64 @@ def _assemble(
     return pd.DataFrame(picked).reset_index(drop=True)
 
 
+def _assemble_target_market_odds(
+    pool: pd.DataFrame,
+    *,
+    min_prob: float,
+    target_odds: float,
+    max_legs: int,
+) -> pd.DataFrame:
+    """
+    Build a priced accumulator from the best available consolidated picks.
+    The first pass keeps the configured minimum probability; later passes
+    relax it slightly so the report still offers the strongest available
+    100-odds attempt on short fixture slates.
+    """
+    priced = pool[
+        pool["market_odds"].notna()
+        & pool["prob"].notna()
+        & (pool["market_odds"] > 1.0)
+    ].copy()
+    if priced.empty:
+        return pd.DataFrame()
+
+    floors = [min_prob, 0.50, 0.45, 0.40, 0.35, 0.30]
+    thresholds = []
+    for floor in floors:
+        floor = min(float(floor), float(min_prob))
+        if floor not in thresholds:
+            thresholds.append(floor)
+
+    best_picked: list[pd.Series] = []
+    best_odds = 0.0
+    for threshold in thresholds:
+        eligible = priced[priced["prob"] >= threshold].sort_values(
+            ["prob", "edge", "market_odds"],
+            ascending=[False, False, False],
+        )
+        picked = []
+        used_fixtures: set[str] = set()
+        combined_market = 1.0
+        for _, row in eligible.iterrows():
+            if row["fixture_id"] in used_fixtures:
+                continue
+            picked.append(row)
+            used_fixtures.add(row["fixture_id"])
+            combined_market *= float(row["market_odds"])
+            if combined_market >= target_odds or len(picked) >= max_legs:
+                break
+
+        if len(picked) >= 2 and combined_market > best_odds:
+            best_picked = picked
+            best_odds = combined_market
+        if len(picked) >= 2 and combined_market >= target_odds:
+            return pd.DataFrame(picked).reset_index(drop=True)
+
+    if len(best_picked) < 2:
+        return pd.DataFrame()
+    return pd.DataFrame(best_picked).reset_index(drop=True)
+
+
 def _slip_stats(legs: pd.DataFrame) -> dict:
     combined_prob = float(legs["prob"].prod())
     combined_fair_odds = float(legs["fair_odds"].prod())
@@ -247,6 +306,16 @@ def build_slips(predictions: pd.DataFrame, slip_cfg: dict) -> dict:
         legs = _assemble(pool, **kwargs)
         if not legs.empty:
             out[name] = {"legs": legs, "stats": _slip_stats(legs)}
+
+    if slip_cfg.get("banker_100_enabled", True):
+        legs = _assemble_target_market_odds(
+            pool,
+            min_prob=float(slip_cfg.get("banker_100_min_leg_prob", 0.50)),
+            target_odds=float(slip_cfg.get("banker_100_target_odds", 100.0)),
+            max_legs=int(slip_cfg.get("banker_100_max_legs", 20)),
+        )
+        if not legs.empty:
+            out["BANKER_100"] = {"legs": legs, "stats": _slip_stats(legs)}
 
     # VALUE slip — needs market odds
     if pool["market_odds"].notna().any():

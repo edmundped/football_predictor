@@ -197,9 +197,10 @@ def main() -> int:
             s  = slip["stats"]
             ki = kelly_stakes.get(name, {})
             ev = f"  EV={s['expected_value_per_unit']:+.3f}" if s["expected_value_per_unit"] is not None else ""
+            market = f"  market_odds={s['combined_market_odds']:6.2f}" if s.get("combined_market_odds") else ""
             stake_str = f"  stake=GHS {ki['recommended_stake']:,.2f}" if ki.get("recommended_stake") else ""
             print(f"  {name:11s} legs={s['legs']}  P={s['combined_prob']*100:5.2f}%  "
-                  f"fair_odds={s['combined_fair_odds']:6.2f}{ev}{stake_str}")
+                  f"fair_odds={s['combined_fair_odds']:6.2f}{market}{ev}{stake_str}")
 
     print(f"\nBankroll: GHS {balance:,.2f}  "
           f"(bets: {bankroll_summary['total_bets']}  pending: {bankroll_summary['pending_bets']})")

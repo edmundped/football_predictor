@@ -15,14 +15,15 @@ Outputs land in `docs/`:
 
 ## What the tool does
 
-1. Downloads historical match CSVs + current-season fixtures for the leagues in `config.yaml`. First run takes ~20s; afterwards it's cached for 6 hours.
+1. Downloads historical match CSVs + current-season fixtures for the leagues in `config.yaml`. First run can take about a minute with the expanded league list; afterwards it's cached for 6 hours.
 2. Walks every match in history to build goal-weighted Elo ratings per team.
 3. For each upcoming fixture in the next `lookahead_days` days: converts Elo gap + league baseline into expected goals, then runs a Dixon-Coles Poisson model to get probabilities for home/draw/away, over/under 2.5, BTTS, and top scorelines.
 4. Downloads basketball results/fixtures for NBA and EuroLeague, fits a recent-results basketball Elo, then predicts moneyline plus spread/total probabilities where market lines are available.
-5. Builds four consolidated slip variants from the predictions:
+5. Builds five consolidated slip variants from the predictions:
    - **SAFE** — short accumulator, each leg > 72% probability.
    - **BALANCED** — mid-length, each leg > 60%.
    - **AGGRESSIVE** — longer accumulator, each leg > 50%, higher payout.
+   - **BANKER_100** — priced accumulator from the consolidated pool, aiming for combined market odds of 100+.
    - **VALUE** — only when market odds are present in the source data: picks where model probability exceeds market implied probability by at least 5%. Sorted by edge, not raw probability.
 6. Renders a self-contained HTML report.
 
@@ -32,11 +33,11 @@ One-pick-per-fixture is enforced across all slips so the independence assumption
 
 Edit `config.yaml`:
 
-- `leagues` — league codes from football-data.co.uk (`E0`=EPL, `SP1`=La Liga, `I1`=Serie A, `D1`=Bundesliga, `F1`=Ligue 1, etc.).
+- `leagues` — league codes from football-data.co.uk. Defaults now include the big five, English Championship/League One/League Two, major second divisions, Eredivisie, Primeira Liga, Jupiler League, Super Lig, Greek Super League, and Scottish Premiership.
 - `current_season` — e.g. `"2526"` for 2025-26.
 - `history_seasons` — how many past seasons to fit Elo on (3 is plenty).
 - `lookahead_days` — how far ahead to predict (default 3).
-- `slip.*` — leg count targets and minimum leg probabilities for each variant.
+- `slip.*` — leg count targets, minimum leg probabilities, and the 100-odds banker target settings.
 - `basketball.enabled` — turn NBA/EuroLeague predictions on or off.
 - `basketball.leagues` — currently supports `NBA` and `EuroLeague`.
 - `basketball.history_days` — how many recent basketball days to train on.
@@ -91,7 +92,7 @@ football_predictor/
 │   ├── ratings.py        # goal-weighted Elo
 │   ├── basketball_model.py
 │   ├── model.py          # Dixon-Coles Poisson scoreline matrix
-│   ├── slip_builder.py   # consolidated SAFE / BALANCED / AGGRESSIVE / VALUE variants
+│   ├── slip_builder.py   # consolidated SAFE / BALANCED / AGGRESSIVE / BANKER_100 / VALUE variants
 │   └── report.py         # standalone HTML report
 ├── data/                 # cached CSVs (auto-populated)
 └── docs/                 # GitHub Pages output
@@ -99,7 +100,7 @@ football_predictor/
 
 ## Extending it
 
-- **More leagues**: add codes to `leagues:` in config. Championship is `E1`, Eredivisie `N1`, Primeira `P1`, Scottish Premiership `SC0`.
+- **More leagues**: add or remove football-data.co.uk codes in `leagues:`. The default set is broad, so trim it if you want faster runs or a tighter model scope.
 - **Better injuries**: the honest path is a manual CSV with team rating overrides (`team,rating_delta`) read at predict time. Easy add.
 - **Backtesting**: walk-forward split on `history`, predict, compute Brier/log-loss. Skeleton for this is a straightforward extension of `model.predict_fixtures`.
 - **LLM narration** (optional): once you trust the math, a deterministic templated report works; an LLM narration layer can be bolted on later and should never generate numbers.

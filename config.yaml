@@ -13,10 +13,23 @@
 #   G1  Greek Super League  SC0 Scottish Premiership
 leagues:
   - E0
+  - E1
+  - E2
+  - E3
   - SP1
+  - SP2
   - I1
+  - I2
   - D1
+  - D2
   - F1
+  - F2
+  - N1
+  - P1
+  - B1
+  - T1
+  - G1
+  - SC0
 
 # Number of past seasons to train Elo on. 3 is plenty for stable ratings.
 history_seasons: 3
@@ -75,6 +88,10 @@ slip:
   balanced_min_leg_prob: 0.60
   aggressive_legs: 6
   aggressive_min_leg_prob: 0.50
+  banker_100_enabled: true
+  banker_100_target_odds: 100.0
+  banker_100_min_leg_prob: 0.50
+  banker_100_max_legs: 20
   value_min_edge: 0.05    # required (model_prob / market_implied - 1)
 
 # Paths (relative to project root)
