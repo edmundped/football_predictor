@@ -34,6 +34,8 @@ from src import (  # noqa: E402
     ratings as rating_mod,
     report,
     slip_builder,
+    staking,
+    tracker,
 )
 
 
@@ -153,9 +155,34 @@ def main() -> int:
     log.info("building consolidated slip variants")
     slips = slip_builder.build_slips(all_predictions, cfg["slip"])
 
+    # ── staking ────────────────────────────────────────────────────────────
+    log.info("computing Kelly stakes")
+    bankroll_summary = tracker.summary()
+    balance = bankroll_summary["current_balance"]
+    kelly_stakes: dict[str, dict] = {}
+    for name, slip in slips.items():
+        s = slip["stats"]
+        ki = staking.slip_kelly(
+            combined_prob        = s["combined_prob"],
+            combined_market_odds = s.get("combined_market_odds"),
+            combined_fair_odds   = s["combined_fair_odds"],
+            bankroll             = balance,
+        )
+        kelly_stakes[name] = ki
+
     # write stable artifacts, overwriting the prior run
     html_path = out_dir / "index.html"
-    html_path.write_text(report.render(predictions, basketball_predictions, slips, run_ts), encoding="utf-8")
+    html_path.write_text(
+        report.render(
+            predictions,
+            basketball_predictions,
+            slips,
+            run_ts,
+            bankroll = bankroll_summary,
+            kelly    = kelly_stakes,
+        ),
+        encoding="utf-8",
+    )
 
     predictions_path = out_dir / "predictions.csv"
     all_predictions.to_csv(predictions_path, index=False)
@@ -167,10 +194,17 @@ def main() -> int:
     if slips:
         print("\nConsolidated slip summary:")
         for name, slip in slips.items():
-            s = slip["stats"]
+            s  = slip["stats"]
+            ki = kelly_stakes.get(name, {})
             ev = f"  EV={s['expected_value_per_unit']:+.3f}" if s["expected_value_per_unit"] is not None else ""
+            stake_str = f"  stake=£{ki['recommended_stake']:.2f}" if ki.get("recommended_stake") else ""
             print(f"  {name:11s} legs={s['legs']}  P={s['combined_prob']*100:5.2f}%  "
-                  f"fair_odds={s['combined_fair_odds']:6.2f}{ev}")
+                  f"fair_odds={s['combined_fair_odds']:6.2f}{ev}{stake_str}")
+
+    print(f"\nBankroll: £{balance:.2f}  "
+          f"(bets: {bankroll_summary['total_bets']}  pending: {bankroll_summary['pending_bets']})")
+    print("To log a bet:    python log_result.py --log --slip VALUE --stake X --odds Y")
+    print("To log results:  python log_result.py")
     return 0
 
 

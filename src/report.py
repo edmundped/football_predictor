@@ -1,829 +1,1361 @@
 """
-Self-contained HTML report. No external CSS/JS; opens anywhere.
+Premium dark-themed HTML report — sports-betting site aesthetic.
+Bankroll dashboard, Kelly staking, result-logging UI.
 """
 
 from __future__ import annotations
 
 import html
+import math
 from datetime import datetime
 
 import pandas as pd
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# CSS
+# ──────────────────────────────────────────────────────────────────────────────
+
 CSS = """
 <style>
-  :root {
-    --ink: #17202a;
-    --muted: #667085;
-    --line: #d9dee7;
-    --panel: #ffffff;
-    --page: #f2f5f8;
-    --header: #111827;
-    --header-soft: #1f2937;
-    --accent: #d71920;
-    --blue: #0057b8;
-    --green: #16803c;
-    --gold: #b86e00;
-  }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--page);
-    color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  }
+:root {
+  --bg:        #090c12;
+  --bg2:       #0f1420;
+  --card:      #131926;
+  --card2:     #1a2135;
+  --border:    #1e293b;
+  --border2:   #253047;
+  --text:      #e2e8f0;
+  --muted:     #64748b;
+  --muted2:    #8898aa;
+  --green:     #10b981;
+  --green-dim: #064e3b;
+  --red:       #ef4444;
+  --red-dim:   #450a0a;
+  --gold:      #f59e0b;
+  --gold-dim:  #451a03;
+  --blue:      #3b82f6;
+  --blue-dim:  #1e3a5f;
+  --purple:    #a855f7;
+  --purple-dim:#3b0764;
+  --accent:    #10b981;
+  --glow:      0 0 20px rgba(16,185,129,0.15);
+}
 
-  .masthead {
-    background: linear-gradient(135deg, var(--header) 0%, #202733 55%, #3c1115 100%);
-    color: #fff;
-    border-bottom: 4px solid var(--accent);
-  }
-  .masthead-inner {
-    max-width: 1240px;
-    margin: 0 auto;
-    padding: 20px 22px 18px;
-  }
-  .league-strip {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 18px;
-    color: #cfd6e2;
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-  .league-strip strong {
-    color: #fff;
-    letter-spacing: 0.1em;
-  }
-  h1 {
-    margin: 0;
-    font-size: clamp(2rem, 4vw, 3.5rem);
-    line-height: 0.95;
-    letter-spacing: 0;
-  }
-  .dek {
-    margin: 10px 0 0;
-    max-width: 860px;
-    color: #dce3ee;
-    font-size: 1rem;
-  }
-  .run-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 18px;
-  }
-  .pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    min-height: 30px;
-    padding: 5px 10px;
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 999px;
-    background: rgba(255,255,255,0.08);
-    color: #eef2f7;
-    font-size: 0.84rem;
-    white-space: nowrap;
-  }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-  .shell {
-    max-width: 1240px;
-    margin: 0 auto;
-    padding: 18px 22px 34px;
-  }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
 
-  .main-tabs {
-    position: sticky;
-    top: 0;
-    z-index: 5;
-    display: flex;
-    gap: 8px;
-    padding: 10px 0;
-    margin-bottom: 12px;
-    background: rgba(242,245,248,0.95);
-    backdrop-filter: blur(8px);
-    overflow-x: auto;
-  }
-  .main-tab {
-    appearance: none;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: #fff;
-    color: var(--ink);
-    cursor: pointer;
-    font: inherit;
-    font-size: 0.9rem;
-    font-weight: 700;
-    padding: 9px 14px;
-    white-space: nowrap;
-  }
-  .main-tab[aria-selected="true"] {
-    background: var(--header);
-    border-color: var(--header);
-    color: #fff;
-  }
-  .main-panel { display: none; }
-  .main-panel.active { display: block; }
+/* ── HEADER ── */
+.header {
+  background: linear-gradient(135deg, #0a0f1a 0%, #0d1525 40%, #0a1628 100%);
+  border-bottom: 1px solid var(--border2);
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 20% 50%, rgba(16,185,129,0.08) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 20%, rgba(59,130,246,0.06) 0%, transparent 50%);
+  pointer-events: none;
+}
+.header-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 22px 24px 20px;
+  position: relative;
+}
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.brand-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--green), #059669);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 0 16px rgba(16,185,129,0.4);
+}
+.brand-name {
+  font-size: 1.2rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+.brand-sub {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.live-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: rgba(239,68,68,0.15);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--red);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.live-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--red);
+  border-radius: 50%;
+  animation: pulse 1.4s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
 
-  .section-head {
-    display: flex;
-    align-items: end;
-    justify-content: space-between;
-    gap: 14px;
-    margin: 16px 0 12px;
-  }
-  h2 {
-    margin: 0;
-    font-size: 1.2rem;
-    letter-spacing: 0;
-  }
-  .muted { color: var(--muted); font-size: 0.9rem; }
-  .fineprint { color: var(--muted); font-size: 0.82rem; margin-top: 18px; }
+.header-title { font-size: clamp(2rem, 4vw, 3rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1; color: #fff; }
+.header-sub { color: var(--muted2); font-size: 0.9rem; margin-top: 6px; }
 
-  .metric-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 10px;
-    margin: 16px 0 18px;
-  }
-  .metric {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 13px 14px;
-    min-width: 0;
-  }
-  .metric .label {
-    color: var(--muted);
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-  .metric .value {
-    margin-top: 6px;
-    font-size: 1.45rem;
-    font-weight: 850;
-    font-variant-numeric: tabular-nums;
-  }
-  .metric .sub {
-    margin-top: 3px;
-    color: var(--muted);
-    font-size: 0.82rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+.pills-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.pill {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 11px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border2);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  color: var(--muted2);
+  white-space: nowrap;
+}
+.pill strong { color: var(--text); font-weight: 700; }
+.pill.green { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.3); color: var(--green); }
 
-  .ticker {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(236px, 1fr);
-    gap: 10px;
-    overflow-x: auto;
-    padding-bottom: 6px;
-  }
-  .match-tile {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    min-height: 118px;
-    padding: 12px;
-  }
-  .tile-top {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    color: var(--muted);
-    font-size: 0.75rem;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
-  .teams {
-    margin-top: 10px;
-    display: grid;
-    gap: 5px;
-    font-weight: 800;
-  }
-  .lean {
-    margin-top: 10px;
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
-    border-top: 1px solid var(--line);
-    padding-top: 8px;
-    color: var(--muted);
-    font-size: 0.84rem;
-  }
-  .lean strong { color: var(--ink); }
+/* ── TICKER STRIP ── */
+.ticker-strip {
+  background: rgba(0,0,0,0.3);
+  border-top: 1px solid var(--border);
+  padding: 0 24px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.ticker-inner {
+  display: inline-flex;
+  gap: 0;
+  animation: scroll-left 40s linear infinite;
+}
+.ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 20px;
+  border-right: 1px solid var(--border);
+  font-size: 0.78rem;
+}
+.ticker-item .teams { font-weight: 700; color: var(--text); }
+.ticker-item .odds { color: var(--green); font-weight: 800; font-variant-numeric: tabular-nums; }
+.ticker-item .league { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; }
+@keyframes scroll-left {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
 
-  .slip-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-  }
-  .slip-card {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  .slip-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 13px 14px;
-    background: #f8fafc;
-    border-bottom: 1px solid var(--line);
-  }
-  .slip-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 900;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-  }
-  .tag {
-    display: inline-flex;
-    align-items: center;
-    min-height: 22px;
-    padding: 2px 8px;
-    border-radius: 999px;
-    color: #fff;
-    font-size: 0.72rem;
-    font-weight: 900;
-  }
-  .tag-safe { background: var(--green); }
-  .tag-balanced { background: var(--blue); }
-  .tag-aggressive { background: var(--accent); }
-  .tag-value { background: #7a3db8; }
-  .slip-stats {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 1px;
-    background: var(--line);
-  }
-  .slip-stat {
-    background: #fff;
-    padding: 10px 12px;
-  }
-  .slip-stat .label {
-    color: var(--muted);
-    font-size: 0.68rem;
-    font-weight: 800;
-    text-transform: uppercase;
-  }
-  .slip-stat .value {
-    margin-top: 3px;
-    font-weight: 900;
-    font-variant-numeric: tabular-nums;
-  }
-  .pos { color: var(--green); }
-  .neg { color: var(--accent); }
+/* ── SHELL ── */
+.shell {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 20px 24px 48px;
+}
 
-  .table-frame {
-    overflow: auto;
-    max-height: 62vh;
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 8px;
-  }
-  .slip-card .table-frame {
-    max-height: 260px;
-    border: 0;
-    border-radius: 0;
-  }
-  table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    font-size: 0.88rem;
-  }
-  th {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    background: #f8fafc;
-    border-bottom: 1px solid var(--line);
-    color: #465161;
-    font-size: 0.72rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-  }
-  th, td {
-    padding: 9px 10px;
-    text-align: left;
-    border-bottom: 1px solid #eef1f5;
-    vertical-align: middle;
-  }
-  tbody tr:hover { background: #fafcff; }
-  td.match-cell { min-width: 230px; font-weight: 800; }
-  .subline {
-    display: block;
-    margin-top: 2px;
-    color: var(--muted);
-    font-size: 0.78rem;
-    font-weight: 500;
-  }
-  .pct, .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .sport-badge {
-    display: inline-flex;
-    align-items: center;
-    border-radius: 999px;
-    padding: 2px 7px;
-    background: #edf2f7;
-    color: #344054;
-    font-size: 0.72rem;
-    font-weight: 850;
-    text-transform: uppercase;
-  }
-  .market-badge {
-    display: inline-flex;
-    border-radius: 999px;
-    padding: 2px 7px;
-    background: #fff1d6;
-    color: #6f4300;
-    font-size: 0.74rem;
-    font-weight: 850;
-    white-space: nowrap;
-  }
-  .empty {
-    background: var(--panel);
-    border: 1px dashed var(--line);
-    border-radius: 8px;
-    color: var(--muted);
-    padding: 18px;
-  }
-  footer {
-    margin: 28px 0 0;
-    color: var(--muted);
-    font-size: 0.78rem;
-    text-align: center;
-  }
+/* ── NAV TABS ── */
+.nav-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 14px 0 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+.nav-tab {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 10px 16px 12px;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color .15s, border-color .15s;
+}
+.nav-tab:hover { color: var(--text); }
+.nav-tab[aria-selected="true"] {
+  color: var(--green);
+  border-bottom-color: var(--green);
+}
+.tab-icon { margin-right: 5px; }
 
-  @media (max-width: 920px) {
-    .metric-grid, .slip-grid { grid-template-columns: 1fr 1fr; }
-    .slip-stats { grid-template-columns: 1fr 1fr; }
-  }
-  @media (max-width: 620px) {
-    .masthead-inner, .shell { padding-left: 14px; padding-right: 14px; }
-    .league-strip, .section-head { align-items: flex-start; flex-direction: column; }
-    .metric-grid, .slip-grid { grid-template-columns: 1fr; }
-    .table-frame { max-height: 68vh; }
-  }
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── SECTION HEADING ── */
+.section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.section-head h2 { font-size: 1.05rem; font-weight: 800; letter-spacing: -0.01em; }
+.section-head .hint { color: var(--muted); font-size: 0.82rem; }
+
+/* ── STAT GRID ── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--accent-bar, var(--border));
+}
+.stat-card.green-accent::after { background: var(--green); }
+.stat-card.gold-accent::after  { background: var(--gold); }
+.stat-card.red-accent::after   { background: var(--red); }
+.stat-card.blue-accent::after  { background: var(--blue); }
+.stat-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.stat-value {
+  font-size: 1.7rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.stat-sub { color: var(--muted2); font-size: 0.78rem; margin-top: 5px; }
+.text-green { color: var(--green); }
+.text-red   { color: var(--red); }
+.text-gold  { color: var(--gold); }
+.text-blue  { color: var(--blue); }
+.text-muted { color: var(--muted); }
+
+/* ── BANKROLL PROGRESS ── */
+.bankroll-hero {
+  background: linear-gradient(135deg, var(--card) 0%, #0d1b2a 100%);
+  border: 1px solid var(--border2);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.bankroll-hero::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 180px; height: 180px;
+  background: radial-gradient(circle, rgba(16,185,129,0.12), transparent 70%);
+  pointer-events: none;
+}
+.bankroll-numbers { display: flex; align-items: flex-end; gap: 24px; flex-wrap: wrap; margin-bottom: 18px; }
+.bankroll-main { }
+.bankroll-main .label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 4px; }
+.bankroll-main .amount { font-size: 2.8rem; font-weight: 900; color: var(--green); letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.bankroll-secondary { display: flex; gap: 24px; flex-wrap: wrap; }
+.bk-stat .label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 2px; }
+.bk-stat .val { font-size: 1rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+.progress-section { }
+.progress-labels { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--muted); margin-bottom: 6px; }
+.progress-labels strong { color: var(--text); font-weight: 700; }
+.progress-track {
+  background: var(--border);
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #059669, #10b981, #34d399);
+  box-shadow: 0 0 10px rgba(16,185,129,0.5);
+  transition: width 0.6s ease;
+}
+.progress-pct { font-size: 0.72rem; color: var(--muted); }
+.progress-pct strong { color: var(--green); }
+
+/* ── FIXTURE TICKER (cards) ── */
+.fixture-ticker {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(220px, 240px);
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-bottom: 24px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+.match-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+}
+.match-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.league-tag {
+  font-size: 0.68rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--muted); background: var(--bg2);
+  padding: 2px 7px; border-radius: 4px;
+}
+.match-time { font-size: 0.72rem; color: var(--muted2); font-variant-numeric: tabular-nums; }
+.match-teams { margin-bottom: 10px; }
+.match-teams .team { font-weight: 700; font-size: 0.9rem; padding: 1px 0; }
+.match-teams .vs { font-size: 0.7rem; color: var(--muted); padding: 2px 0; }
+.match-lean { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 8px; }
+.lean-pick { font-size: 0.78rem; color: var(--muted2); }
+.lean-prob { font-size: 0.85rem; font-weight: 800; color: var(--green); font-variant-numeric: tabular-nums; }
+
+/* ── SLIP GRID ── */
+.slip-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.slip-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.slip-card.value-card { border-color: rgba(168,85,247,0.4); box-shadow: 0 0 20px rgba(168,85,247,0.08); }
+.slip-card.safe-card  { border-color: rgba(16,185,129,0.3); }
+
+.slip-header {
+  padding: 14px 16px;
+  background: var(--card2);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.slip-title-row { display: flex; align-items: center; gap: 8px; }
+.slip-name { font-size: 1rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.04em; }
+
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 9px; border-radius: 999px;
+  font-size: 0.66rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.badge-safe     { background: var(--green-dim); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+.badge-balanced { background: var(--blue-dim);  color: var(--blue);  border: 1px solid rgba(59,130,246,0.3); }
+.badge-aggressive { background: var(--red-dim); color: var(--red);   border: 1px solid rgba(239,68,68,0.3); }
+.badge-value    { background: var(--purple-dim); color: var(--purple); border: 1px solid rgba(168,85,247,0.3); }
+.badge-win      { background: var(--green-dim); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+.badge-loss     { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(239,68,68,0.3); }
+.badge-pending  { background: rgba(245,158,11,0.1); color: var(--gold); border: 1px solid rgba(245,158,11,0.3); }
+.badge-void     { background: rgba(100,116,139,0.15); color: var(--muted); border: 1px solid var(--border2); }
+
+.slip-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 1px;
+  background: var(--border);
+}
+.slip-stat-cell {
+  background: var(--card);
+  padding: 10px 12px;
+}
+.slip-stat-cell .lbl { font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 3px; }
+.slip-stat-cell .val { font-size: 0.95rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+
+/* Kelly stake highlight */
+.kelly-banner {
+  margin: 12px 16px;
+  background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.03));
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.kelly-left .kl { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 2px; }
+.kelly-left .ks { font-size: 1.3rem; font-weight: 900; color: var(--green); font-variant-numeric: tabular-nums; }
+.kelly-right { text-align: right; }
+.kelly-right .kl { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 2px; }
+.kelly-right .ks { font-size: 1rem; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums; }
+
+.copy-cmd {
+  margin: 0 16px 12px;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.copy-cmd code { font-size: 0.75rem; color: var(--muted2); font-family: 'Courier New', monospace; word-break: break-all; }
+.copy-btn {
+  appearance: none;
+  background: var(--border2);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  color: var(--muted2);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background .15s, color .15s;
+}
+.copy-btn:hover { background: var(--green); color: #fff; border-color: var(--green); }
+
+/* ── TABLE ── */
+.table-wrap {
+  overflow: auto;
+  border-radius: 0 0 12px 12px;
+  max-height: 280px;
+  flex: 1;
+}
+.full-table .table-wrap { max-height: 64vh; border-radius: 10px; }
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.83rem;
+}
+th {
+  position: sticky; top: 0; z-index: 2;
+  background: #0e1520;
+  border-bottom: 1px solid var(--border2);
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 9px 12px;
+  white-space: nowrap;
+  text-align: left;
+}
+td {
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(30,41,59,0.5);
+  vertical-align: middle;
+}
+tbody tr:hover td { background: rgba(255,255,255,0.02); }
+tbody tr:last-child td { border-bottom: none; }
+td.match-col { min-width: 180px; font-weight: 700; }
+.row-sub { display: block; margin-top: 2px; color: var(--muted); font-size: 0.75rem; font-weight: 400; }
+.num { font-variant-numeric: tabular-nums; }
+.sport-pill {
+  display: inline-block;
+  padding: 1px 7px;
+  background: rgba(59,130,246,0.12);
+  border: 1px solid rgba(59,130,246,0.2);
+  border-radius: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--blue);
+  white-space: nowrap;
+}
+.market-pill {
+  display: inline-block;
+  padding: 1px 7px;
+  background: rgba(245,158,11,0.1);
+  border: 1px solid rgba(245,158,11,0.2);
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--gold);
+  white-space: nowrap;
+}
+.edge-pos { color: var(--green); font-weight: 700; }
+.edge-neg { color: var(--muted); }
+
+/* ── BET LOG TABLE ── */
+.bet-log-table th { background: #0c1118; }
+.bet-outcome-row td { }
+
+/* ── PENDING BETS ── */
+.pending-card {
+  background: var(--card);
+  border: 1px solid rgba(245,158,11,0.25);
+  border-radius: 10px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.pending-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(245,158,11,0.05);
+  border-bottom: 1px solid rgba(245,158,11,0.15);
+}
+.pending-id { font-family: monospace; font-size: 0.82rem; font-weight: 700; color: var(--gold); }
+.pending-body { padding: 12px 16px; }
+.pending-legs { margin-bottom: 10px; }
+.pending-leg { font-size: 0.82rem; color: var(--muted2); padding: 2px 0; }
+.pending-leg strong { color: var(--text); }
+.log-commands { display: flex; gap: 8px; flex-wrap: wrap; }
+.log-cmd-btn {
+  appearance: none;
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 6px 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: all .15s;
+}
+.log-cmd-btn.win  { background: var(--green-dim); color: var(--green); border-color: rgba(16,185,129,0.3); }
+.log-cmd-btn.loss { background: var(--red-dim);   color: var(--red);   border-color: rgba(239,68,68,0.3); }
+.log-cmd-btn.void { background: rgba(100,116,139,0.1); color: var(--muted2); }
+.log-cmd-btn:hover.win  { background: var(--green); color: #fff; }
+.log-cmd-btn:hover.loss { background: var(--red);   color: #fff; }
+
+/* ── EMPTY STATE ── */
+.empty {
+  background: var(--card);
+  border: 1px dashed var(--border2);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  padding: 24px;
+  text-align: center;
+}
+
+/* ── FOOTER ── */
+footer {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.74rem;
+  margin-top: 40px;
+  padding-bottom: 24px;
+}
+
+/* ── TOAST ── */
+.toast {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  background: var(--green);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity .2s, transform .2s;
+  pointer-events: none;
+  z-index: 99;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 960px) {
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+  .slip-grid  { grid-template-columns: 1fr; }
+  .slip-stats-row { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .header-inner, .shell { padding-left: 14px; padding-right: 14px; }
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+  .bankroll-numbers { gap: 14px; }
+  .bankroll-main .amount { font-size: 2rem; }
+}
 </style>
 """
 
 
-JS = """
+JS = r"""
 <script>
-  function showTab(id) {
-    for (const panel of document.querySelectorAll('.main-panel')) {
-      panel.classList.toggle('active', panel.id === id);
-    }
-    for (const button of document.querySelectorAll('.main-tab')) {
-      button.setAttribute('aria-selected', button.dataset.target === id ? 'true' : 'false');
-    }
-  }
+function showTab(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === id));
+  document.querySelectorAll('.nav-tab').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === id ? 'true' : 'false'));
+}
+
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    btn.style.background = 'var(--green)';
+    btn.style.color = '#fff';
+    showToast('Command copied to clipboard');
+    setTimeout(() => { btn.textContent = orig; btn.style.background=''; btn.style.color=''; }, 2000);
+  }).catch(() => {
+    btn.textContent = 'Error';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+  });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+function logResult(betId, outcome) {
+  const cmd = `python log_result.py --id ${betId} --outcome ${outcome}`;
+  navigator.clipboard.writeText(cmd).then(() => {
+    showToast(`Command copied — paste in your terminal (${outcome})`);
+  });
+}
 </script>
 """
 
 
-def _pct(x) -> str:
-    if x is None or pd.isna(x):
-        return "-"
-    return f"{x * 100:.1f}%"
+# ──────────────────────────────────────────────────────────────────────────────
+# Helpers
+# ──────────────────────────────────────────────────────────────────────────────
 
+def _esc(v) -> str:
+    if v is None or (isinstance(v, float) and math.isnan(v)):
+        return "—"
+    return html.escape(str(v))
+
+def _pct(x, dash="—") -> str:
+    if x is None or (isinstance(x, float) and math.isnan(x)):
+        return dash
+    return f"{float(x)*100:.1f}%"
 
 def _odds(x) -> str:
-    if x is None or pd.isna(x):
-        return "-"
-    return f"{x:.2f}"
+    if x is None or (isinstance(x, float) and math.isnan(x)):
+        return "—"
+    return f"{float(x):.2f}"
 
+def _money(x) -> str:
+    if x is None:
+        return "—"
+    return f"£{float(x):.2f}"
 
-def _num(x, digits: int = 1) -> str:
-    if x is None or pd.isna(x):
-        return "-"
-    return f"{float(x):.{digits}f}"
+def _num(x, d=1) -> str:
+    if x is None or (isinstance(x, float) and math.isnan(x)):
+        return "—"
+    return f"{float(x):.{d}f}"
 
+def _sign(x) -> str:
+    if x is None:
+        return "—"
+    v = float(x)
+    s = f"{v:+.2f}"
+    return s
 
-def _line(x) -> str:
-    if x is None or pd.isna(x):
-        return "-"
-    return f"{float(x):+g}"
+def _date_label(v) -> str:
+    if v is None:
+        return "—"
+    try:
+        return pd.to_datetime(v).strftime("%a %d %b")
+    except Exception:
+        return str(v)
 
+def _time_label(v) -> str:
+    if v is None:
+        return ""
+    try:
+        dt = pd.to_datetime(v)
+        if dt.hour == 0 and dt.minute == 0:
+            return ""
+        return dt.strftime("%H:%M")
+    except Exception:
+        return ""
 
-def _esc(value) -> str:
-    if value is None or pd.isna(value):
-        return "-"
-    return html.escape(str(value))
-
-
-def _date_range(*frames: pd.DataFrame) -> str:
+def _date_range(*frames) -> str:
     dates = []
     for df in frames:
-        if df is not None and not df.empty and "date" in df:
+        if df is not None and not df.empty and "date" in df.columns:
             dates.extend(pd.to_datetime(df["date"], errors="coerce").dropna().tolist())
     if not dates:
-        return "no fixtures in window"
+        return "no fixtures"
     d0 = min(dates).strftime("%a %d %b")
     d1 = max(dates).strftime("%a %d %b")
-    return d0 if d0 == d1 else f"{d0} - {d1}"
+    return d0 if d0 == d1 else f"{d0} – {d1}"
 
+def _football_lean(row) -> tuple:
+    opts = [
+        (str(row.get("home", "Home")), row.get("p_home")),
+        ("Draw",                        row.get("p_draw")),
+        (str(row.get("away", "Away")),  row.get("p_away")),
+    ]
+    label, prob = max(opts, key=lambda x: float(x[1]) if x[1] is not None and not (isinstance(x[1], float) and math.isnan(x[1])) else -1)
+    return label, prob
 
-def _date_label(value) -> str:
-    if value is None or pd.isna(value):
-        return "-"
-    return pd.to_datetime(value).strftime("%a %d %b")
+def _basketball_lean(row) -> tuple:
+    opts = [
+        (str(row.get("home", "Home")), row.get("p_home")),
+        (str(row.get("away", "Away")), row.get("p_away")),
+    ]
+    label, prob = max(opts, key=lambda x: float(x[1]) if x[1] is not None and not (isinstance(x[1], float) and math.isnan(x[1])) else -1)
+    return label, prob
 
-
-def _time_label(value) -> str:
-    if value is None or pd.isna(value):
-        return ""
-    dt = pd.to_datetime(value)
-    if dt.hour == 0 and dt.minute == 0:
-        return ""
-    return dt.strftime("%H:%M")
-
-
-def _tag(variant: str) -> str:
+def _slip_badge(variant: str) -> str:
     css = {
-        "SAFE": "tag-safe",
-        "BALANCED": "tag-balanced",
-        "AGGRESSIVE": "tag-aggressive",
-        "VALUE": "tag-value",
-    }.get(variant, "tag-balanced")
-    return f'<span class="tag {css}">{html.escape(variant)}</span>'
+        "SAFE": "badge-safe",
+        "BALANCED": "badge-balanced",
+        "AGGRESSIVE": "badge-aggressive",
+        "VALUE": "badge-value",
+    }.get(variant, "badge-balanced")
+    return f'<span class="badge {css}">{html.escape(variant)}</span>'
+
+def _outcome_badge(outcome) -> str:
+    if outcome == "WIN":
+        return '<span class="badge badge-win">WIN</span>'
+    if outcome == "LOSS":
+        return '<span class="badge badge-loss">LOSS</span>'
+    if outcome == "VOID":
+        return '<span class="badge badge-void">VOID</span>'
+    return '<span class="badge badge-pending">Pending</span>'
 
 
-def _football_lean(row: pd.Series) -> tuple[str, float | None]:
-    choices = [
-        (str(row.get("home", "Home")), row.get("p_home")),
-        ("Draw", row.get("p_draw")),
-        (str(row.get("away", "Away")), row.get("p_away")),
-    ]
-    label, prob = max(choices, key=lambda item: -1.0 if pd.isna(item[1]) else float(item[1]))
-    return label, None if pd.isna(prob) else float(prob)
+# ──────────────────────────────────────────────────────────────────────────────
+# Header ticker items
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _ticker_html(football: pd.DataFrame, basketball: pd.DataFrame) -> str:
+    items = []
+    for _, r in football.head(6).iterrows():
+        lean, prob = _football_lean(r)
+        p_str = _pct(prob, "")
+        odds_h = r.get("odds_home")
+        odds_str = f"{float(odds_h):.2f}" if odds_h and not (isinstance(odds_h, float) and math.isnan(odds_h)) else ""
+        items.append(
+            f'<span class="ticker-item">'
+            f'<span class="league">{_esc(r.get("league"))}</span>'
+            f'<span class="teams">{_esc(r.get("home"))} v {_esc(r.get("away"))}</span>'
+            + (f'<span class="odds">{odds_str}</span>' if odds_str else '')
+            + f'<span class="text-muted">{html.escape(lean)} {p_str}</span>'
+            f'</span>'
+        )
+    for _, r in basketball.head(4).iterrows():
+        lean, prob = _basketball_lean(r)
+        p_str = _pct(prob, "")
+        items.append(
+            f'<span class="ticker-item">'
+            f'<span class="league">{_esc(r.get("league"))}</span>'
+            f'<span class="teams">{_esc(r.get("home"))} v {_esc(r.get("away"))}</span>'
+            f'<span class="text-muted">{html.escape(lean)} {p_str}</span>'
+            f'</span>'
+        )
+    if not items:
+        return ""
+    doubled = "".join(items * 2)  # duplicate for seamless loop
+    return f'<div class="ticker-strip"><div class="ticker-inner">{doubled}</div></div>'
 
 
-def _basketball_lean(row: pd.Series) -> tuple[str, float | None]:
-    choices = [
-        (str(row.get("home", "Home")), row.get("p_home")),
-        (str(row.get("away", "Away")), row.get("p_away")),
-    ]
-    label, prob = max(choices, key=lambda item: -1.0 if pd.isna(item[1]) else float(item[1]))
-    return label, None if pd.isna(prob) else float(prob)
+# ──────────────────────────────────────────────────────────────────────────────
+# Overview tab
+# ──────────────────────────────────────────────────────────────────────────────
 
+def _render_overview(football: pd.DataFrame, basketball: pd.DataFrame, slips: dict, bankroll: dict, kelly: dict) -> str:
+    n_slips  = len(slips)
+    total_fx = len(football) + len(basketball)
 
-def _top_edge(slips: dict) -> tuple[str, float | None]:
-    best_label = "-"
-    best_edge = None
-    for slip in slips.values():
-        legs = slip.get("legs")
-        if legs is None or legs.empty or "edge" not in legs:
-            continue
-        for _, leg in legs.iterrows():
-            edge = leg.get("edge")
-            if pd.isna(edge):
-                continue
-            if best_edge is None or float(edge) > best_edge:
-                best_edge = float(edge)
-                best_label = f"{leg.get('pick')} - {leg.get('match')}"
-    return best_label, best_edge
+    # best value EV
+    best_ev = None
+    for sd in slips.values():
+        ev = sd["stats"].get("expected_value_per_unit")
+        if ev is not None and not (isinstance(ev, float) and math.isnan(ev)):
+            if best_ev is None or ev > best_ev:
+                best_ev = ev
+    ev_str   = f"{best_ev:+.3f}" if best_ev is not None else "—"
+    ev_cls   = "text-green" if (best_ev or 0) > 0 else "text-red"
+    bal      = bankroll.get("current_balance", 100.0)
+    start    = bankroll.get("starting_capital", 100.0)
+    pnl      = bal - start
+    pnl_pct  = (pnl / start * 100)
+    pnl_cls  = "text-green" if pnl >= 0 else "text-red"
 
-
-def _best_value_stat(slips: dict) -> str:
-    value_slip = slips.get("VALUE")
-    if not value_slip:
-        return "-"
-    ev = value_slip["stats"].get("expected_value_per_unit")
-    return f"{ev:+.3f}" if ev is not None and pd.notna(ev) else "-"
-
-
-def _render_metrics(
-    football_predictions: pd.DataFrame,
-    basketball_predictions: pd.DataFrame,
-    slips: dict,
-) -> str:
-    best_label, best_edge = _top_edge(slips)
-    return f"""
-      <div class="metric-grid">
-        <div class="metric">
-          <div class="label">Football board</div>
-          <div class="value">{len(football_predictions)}</div>
-          <div class="sub">fixtures in window</div>
-        </div>
-        <div class="metric">
-          <div class="label">Basketball board</div>
-          <div class="value">{len(basketball_predictions)}</div>
-          <div class="sub">NBA and EuroLeague</div>
-        </div>
-        <div class="metric">
-          <div class="label">Slip variants</div>
-          <div class="value">{len(slips)}</div>
-          <div class="sub">consolidated cards</div>
-        </div>
-        <div class="metric">
-          <div class="label">Best value EV</div>
-          <div class="value">{html.escape(_best_value_stat(slips))}</div>
-          <div class="sub" title="{html.escape(best_label)}">{_pct(best_edge) if best_edge is not None else '-' } edge</div>
-        </div>
+    # headline stats
+    stats_html = f"""
+    <div class="stat-grid">
+      <div class="stat-card green-accent">
+        <div class="stat-label">Balance</div>
+        <div class="stat-value {pnl_cls}">{_money(bal)}</div>
+        <div class="stat-sub">started at {_money(start)}</div>
       </div>
+      <div class="stat-card gold-accent">
+        <div class="stat-label">Net P&L</div>
+        <div class="stat-value {pnl_cls}">{'+' if pnl >= 0 else ''}{_money(pnl)}</div>
+        <div class="stat-sub">{'+' if pnl_pct >= 0 else ''}{pnl_pct:.1f}% return</div>
+      </div>
+      <div class="stat-card blue-accent">
+        <div class="stat-label">Fixtures</div>
+        <div class="stat-value">{total_fx}</div>
+        <div class="stat-sub">{len(football)} football · {len(basketball)} basketball</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Best EV</div>
+        <div class="stat-value {ev_cls}">{ev_str}</div>
+        <div class="stat-sub">{n_slips} slip variant{'s' if n_slips != 1 else ''}</div>
+      </div>
+    </div>
+    """
+
+    # fixture ticker cards
+    all_rows = []
+    for _, r in football.head(8).iterrows():
+        lean, prob = _football_lean(r)
+        all_rows.append({"date": r.get("date"), "league": r.get("league"),
+                         "sport": "Football", "home": r.get("home"), "away": r.get("away"),
+                         "lean": lean, "prob": prob})
+    for _, r in basketball.head(8).iterrows():
+        lean, prob = _basketball_lean(r)
+        all_rows.append({"date": r.get("date"), "league": r.get("league"),
+                         "sport": "Basketball", "home": r.get("home"), "away": r.get("away"),
+                         "lean": lean, "prob": prob})
+    all_rows.sort(key=lambda x: pd.to_datetime(x["date"], errors="coerce") if x["date"] else pd.Timestamp.max)
+
+    cards = []
+    for item in all_rows[:14]:
+        time_str = _time_label(item["date"])
+        when     = _date_label(item["date"]) + (f" {time_str}" if time_str else "")
+        cards.append(f"""
+        <article class="match-card">
+          <div class="match-card-top">
+            <span class="league-tag">{_esc(item['league'])}</span>
+            <span class="match-time">{html.escape(when)}</span>
+          </div>
+          <div class="match-teams">
+            <div class="team">{_esc(item['home'])}</div>
+            <div class="vs">vs</div>
+            <div class="team">{_esc(item['away'])}</div>
+          </div>
+          <div class="match-lean">
+            <span class="lean-pick">{_esc(item['lean'])}</span>
+            <span class="lean-prob">{_pct(item['prob'])}</span>
+          </div>
+        </article>""")
+    ticker = f'<div class="fixture-ticker">{"".join(cards)}</div>' if cards else '<div class="empty">No fixtures in window.</div>'
+
+    return f"""
+    <div class="section-head"><div><h2>Today's board</h2><div class="hint">{_date_range(football, basketball)}</div></div></div>
+    {stats_html}
+    <div class="section-head"><div><h2>Upcoming fixtures</h2></div></div>
+    {ticker}
     """
 
 
-def _render_ticker(football_predictions: pd.DataFrame, basketball_predictions: pd.DataFrame) -> str:
-    rows = []
-    for _, row in football_predictions.head(8).iterrows():
-        lean, prob = _football_lean(row)
-        rows.append({
-            "date": row.get("date"),
-            "league": row.get("league"),
-            "sport": "Football",
-            "home": row.get("home"),
-            "away": row.get("away"),
-            "lean": lean,
-            "prob": prob,
-        })
-    for _, row in basketball_predictions.head(8).iterrows():
-        lean, prob = _basketball_lean(row)
-        rows.append({
-            "date": row.get("date"),
-            "league": row.get("league"),
-            "sport": "Basketball",
-            "home": row.get("home"),
-            "away": row.get("away"),
-            "lean": lean,
-            "prob": prob,
-        })
-    rows.sort(key=lambda item: pd.to_datetime(item["date"], errors="coerce"))
-    if not rows:
-        return '<div class="empty">No fixtures in the selected window.</div>'
+# ──────────────────────────────────────────────────────────────────────────────
+# Slips tab
+# ──────────────────────────────────────────────────────────────────────────────
 
-    tiles = []
-    for item in rows[:12]:
-        time = _time_label(item["date"])
-        when = _date_label(item["date"]) + (f" {time}" if time else "")
-        tiles.append(f"""
-          <article class="match-tile">
-            <div class="tile-top">
-              <span>{_esc(item['sport'])}</span>
-              <span>{_esc(item['league'])}</span>
-            </div>
-            <div class="teams">
-              <span>{_esc(item['away'])}</span>
-              <span>{_esc(item['home'])}</span>
-            </div>
-            <div class="lean">
-              <span>{html.escape(when)}</span>
-              <strong>{_esc(item['lean'])} {_pct(item['prob'])}</strong>
-            </div>
-          </article>
-        """)
-    return f'<div class="ticker">{"".join(tiles)}</div>'
-
-
-def _render_slip(variant: str, slip: dict) -> str:
+def _render_slip_card(variant: str, slip: dict, kelly_info: dict) -> str:
     legs: pd.DataFrame = slip["legs"]
     stats = slip["stats"]
+    ev    = stats.get("expected_value_per_unit")
+    ev_str = f"{ev:+.3f}" if ev is not None and not (isinstance(ev, float) and math.isnan(ev)) else "—"
+    ev_cls = "text-green" if (ev or 0) > 0 else "text-red"
+    mk_odds = stats.get("combined_market_odds")
 
-    rows = []
-    for _, r in legs.iterrows():
-        edge = r.get("edge")
-        edge_str = f"{edge * 100:+.1f}%" if pd.notna(edge) else "-"
-        sport = str(r.get("sport", "")).title() if pd.notna(r.get("sport", "")) else "-"
-        rows.append(
-            f"<tr><td><span class='sport-badge'>{html.escape(sport)}</span></td>"
-            f"<td class='match-cell'>{_esc(r['match'])}<span class='subline'>{_esc(r['league'])}</span></td>"
-            f"<td><span class='market-badge'>{_esc(r['market'])}</span></td>"
-            f"<td>{_esc(r['pick'])}</td>"
-            f"<td class='pct'>{_pct(r['prob'])}</td>"
-            f"<td>{_odds(r['fair_odds'])}</td>"
-            f"<td>{_odds(r.get('market_odds'))}</td>"
-            f"<td class='pct'>{edge_str}</td></tr>"
-        )
+    stake   = kelly_info.get("recommended_stake", 0)
+    payout  = kelly_info.get("potential_payout", 0)
+    edge    = kelly_info.get("edge", 0)
+    capped  = kelly_info.get("capped", False)
 
-    ev = stats["expected_value_per_unit"]
-    ev_cls = "pos" if ev is not None and ev > 0 else "neg"
-    ev_value = f"{ev:+.3f}" if ev is not None else "-"
-    market_value = (
-        f"{stats['combined_market_odds']:.2f}"
-        if stats["combined_market_odds"] is not None
-        else "-"
+    stake_str  = _money(stake) if stake > 0 else "—"
+    payout_str = _money(payout) if payout > 0 else "—"
+    edge_pct   = f"{edge*100:+.1f}%" if edge else "—"
+
+    # build log_bet command stub
+    leg_picks = "|".join(
+        f"{r.get('match','?')}:{r.get('pick','?')}"
+        for _, r in legs.iterrows()
+    )
+    log_cmd = (
+        f"python log_result.py --log --slip {variant} "
+        f"--stake {stake:.2f} --odds {stats.get('combined_market_odds') or stats.get('combined_fair_odds'):.2f}"
+        if stake > 0 else ""
     )
 
-    return f"""
-      <article class="slip-card">
-        <div class="slip-head">
-          <div class="slip-title">{_tag(variant)} <span>{html.escape(variant)} slip</span></div>
-          <span class="muted">{stats['legs']} legs</span>
-        </div>
-        <div class="slip-stats">
-          <div class="slip-stat"><div class="label">Prob</div><div class="value">{_pct(stats['combined_prob'])}</div></div>
-          <div class="slip-stat"><div class="label">Fair odds</div><div class="value">{stats['combined_fair_odds']:.2f}</div></div>
-          <div class="slip-stat"><div class="label">Market</div><div class="value">{market_value}</div></div>
-          <div class="slip-stat"><div class="label">EV/unit</div><div class="value {ev_cls}">{ev_value}</div></div>
-        </div>
-        <div class="table-frame">
-          <table>
-            <thead><tr>
-              <th>Sport</th><th>Match</th><th>Market</th><th>Pick</th>
-              <th>Prob</th><th>Fair</th><th>Odds</th><th>Edge</th>
-            </tr></thead>
-            <tbody>{"".join(rows)}</tbody>
-          </table>
-        </div>
-      </article>
-    """
+    # kelly banner
+    kelly_html = ""
+    if stake > 0:
+        capped_note = " <span style='font-size:.7rem;color:var(--muted)'>(capped)</span>" if capped else ""
+        kelly_html = f"""
+        <div class="kelly-banner">
+          <div class="kelly-left">
+            <div class="kl">Kelly Stake{capped_note}</div>
+            <div class="ks">{stake_str}</div>
+          </div>
+          <div class="kelly-right">
+            <div class="kl">Potential Payout</div>
+            <div class="ks">{payout_str}</div>
+          </div>
+        </div>"""
 
+    # copy command
+    cmd_html = ""
+    if log_cmd:
+        cmd_html = f"""
+        <div class="copy-cmd">
+          <code>{html.escape(log_cmd)}</code>
+          <button class="copy-btn" onclick="copyText('{html.escape(log_cmd)}', this)">Copy</button>
+        </div>"""
 
-def _render_slips(slips: dict) -> str:
-    if not slips:
-        return (
-            "<div class='empty'>No consolidated slip variants could be built. "
-            "Try widening lookahead_days or lowering thresholds in config.yaml.</div>"
+    # table rows
+    rows_html = []
+    for _, r in legs.iterrows():
+        edge_v = r.get("edge")
+        e_str  = f"{float(edge_v)*100:+.1f}%" if pd.notna(edge_v) else "—"
+        e_cls  = "edge-pos" if pd.notna(edge_v) and float(edge_v) > 0 else "edge-neg"
+        sport  = str(r.get("sport", "")).title()
+        rows_html.append(
+            f"<tr>"
+            f"<td><span class='sport-pill'>{html.escape(sport)}</span></td>"
+            f"<td class='match-col'>{_esc(r.get('match'))}<span class='row-sub'>{_esc(r.get('league'))}</span></td>"
+            f"<td><span class='market-pill'>{_esc(r.get('market'))}</span></td>"
+            f"<td style='font-weight:700'>{_esc(r.get('pick'))}</td>"
+            f"<td class='num text-green'>{_pct(r.get('prob'))}</td>"
+            f"<td class='num'>{_odds(r.get('fair_odds'))}</td>"
+            f"<td class='num'>{_odds(r.get('market_odds'))}</td>"
+            f"<td class='num {e_cls}'>{e_str}</td>"
+            f"</tr>"
         )
-    cards = [_render_slip(name, slip) for name, slip in slips.items()]
+
+    card_extra = ""
+    if variant == "VALUE":
+        card_extra = " value-card"
+    elif variant == "SAFE":
+        card_extra = " safe-card"
+
+    return f"""
+    <article class="slip-card{card_extra}">
+      <div class="slip-header">
+        <div class="slip-title-row">
+          {_slip_badge(variant)}
+          <span class="slip-name">{html.escape(variant)} slip</span>
+        </div>
+        <span style="color:var(--muted);font-size:.82rem">{stats['legs']} legs</span>
+      </div>
+      <div class="slip-stats-row">
+        <div class="slip-stat-cell"><div class="lbl">Comb. Prob</div><div class="val text-green">{_pct(stats['combined_prob'])}</div></div>
+        <div class="slip-stat-cell"><div class="lbl">Fair Odds</div><div class="val">{_odds(stats['combined_fair_odds'])}</div></div>
+        <div class="slip-stat-cell"><div class="lbl">Market Odds</div><div class="val">{_odds(mk_odds)}</div></div>
+        <div class="slip-stat-cell"><div class="lbl">EV / unit</div><div class="val {ev_cls}">{ev_str}</div></div>
+      </div>
+      {kelly_html}
+      {cmd_html}
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Sport</th><th>Match</th><th>Market</th><th>Pick</th>
+            <th>Prob</th><th>Fair</th><th>Odds</th><th>Edge</th>
+          </tr></thead>
+          <tbody>{"".join(rows_html)}</tbody>
+        </table>
+      </div>
+    </article>"""
+
+
+def _render_slips(slips: dict, kelly: dict) -> str:
+    if not slips:
+        return "<div class='empty'>No slip variants available. Widen lookahead_days or check data freshness.</div>"
+    cards = [_render_slip_card(name, slip, kelly.get(name, {})) for name, slip in slips.items()]
     return f'<div class="slip-grid">{"".join(cards)}</div>'
 
 
-def _render_football_predictions(predictions: pd.DataFrame) -> str:
-    if predictions.empty:
-        return "<div class='empty'>No football fixtures in the selected window.</div>"
+# ──────────────────────────────────────────────────────────────────────────────
+# Bankroll tab
+# ──────────────────────────────────────────────────────────────────────────────
 
-    body_rows = []
-    for _, r in predictions.iterrows():
-        lean, lean_prob = _football_lean(r)
-        time = _time_label(r.get("date"))
-        date = _date_label(r.get("date")) + (f" {time}" if time else "")
-        body_rows.append(
+def _render_bankroll(bk: dict) -> str:
+    start   = bk.get("starting_capital", 100.0)
+    balance = bk.get("current_balance", 100.0)
+    goal    = 1_000_000.0
+
+    # log-scale progress
+    try:
+        pct = math.log(max(balance, start) / start) / math.log(goal / start) * 100
+        pct = max(0.0, min(100.0, pct))
+    except Exception:
+        pct = 0.0
+
+    pnl     = balance - start
+    pnl_cls = "text-green" if pnl >= 0 else "text-red"
+    roi     = bk.get("roi_pct", 0.0)
+    hit     = bk.get("hit_rate_pct", 0.0)
+
+    hero = f"""
+    <div class="bankroll-hero">
+      <div class="bankroll-numbers">
+        <div class="bankroll-main">
+          <div class="label">Current Balance</div>
+          <div class="amount">{_money(balance)}</div>
+        </div>
+        <div class="bankroll-secondary">
+          <div class="bk-stat">
+            <div class="label">Net Profit</div>
+            <div class="val {pnl_cls}">{'+' if pnl >= 0 else ''}{_money(pnl)}</div>
+          </div>
+          <div class="bk-stat">
+            <div class="label">ROI</div>
+            <div class="val {pnl_cls}">{'+' if roi >= 0 else ''}{roi:.2f}%</div>
+          </div>
+          <div class="bk-stat">
+            <div class="label">Hit Rate</div>
+            <div class="val">{hit:.1f}%</div>
+          </div>
+          <div class="bk-stat">
+            <div class="label">Bets (W/L)</div>
+            <div class="val">{bk.get('resolved_bets', 0)} ({bk.get('wins', 0)}/{bk.get('losses', 0)})</div>
+          </div>
+          <div class="bk-stat">
+            <div class="label">Pending</div>
+            <div class="val text-gold">{bk.get('pending_bets', 0)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="progress-section">
+        <div class="progress-labels">
+          <span><strong>{_money(start)}</strong> start</span>
+          <span>Goal: <strong>{_money(goal)}</strong></span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" style="width:{pct:.3f}%"></div>
+        </div>
+        <div class="progress-pct">Journey progress (log scale): <strong>{pct:.3f}%</strong></div>
+      </div>
+    </div>"""
+
+    # stats grid
+    stats_html = f"""
+    <div class="stat-grid">
+      <div class="stat-card green-accent">
+        <div class="stat-label">Total Staked</div>
+        <div class="stat-value">{_money(bk.get('total_staked', 0))}</div>
+        <div class="stat-sub">across resolved bets</div>
+      </div>
+      <div class="stat-card gold-accent">
+        <div class="stat-label">Total Returned</div>
+        <div class="stat-value">{_money(bk.get('total_returned', 0))}</div>
+        <div class="stat-sub">winnings before stake</div>
+      </div>
+      <div class="stat-card blue-accent">
+        <div class="stat-label">Total Bets</div>
+        <div class="stat-value">{bk.get('total_bets', 0)}</div>
+        <div class="stat-sub">{bk.get('pending_bets', 0)} pending</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Balance Δ</div>
+        <div class="stat-value {pnl_cls}">{'+' if (bk.get('balance_change_pct',0) >= 0) else ''}{bk.get('balance_change_pct', 0):.2f}%</div>
+        <div class="stat-sub">vs starting capital</div>
+      </div>
+    </div>"""
+
+    # pending bets — actionable section
+    pending = bk.get("pending", [])
+    pending_html = ""
+    if pending:
+        cards = []
+        for b in pending:
+            legs = b.get("legs") or []
+            legs_html = "".join(
+                f'<div class="pending-leg"><strong>{html.escape(str(lg.get("pick","?")))}</strong> — {html.escape(str(lg.get("match","?")))}'
+                f' <span style="color:var(--muted)">({html.escape(str(lg.get("market","?")))})</span></div>'
+                for lg in legs
+            ) or '<div class="pending-leg text-muted">Manually logged bet</div>'
+
+            win_cmd  = f"python log_result.py --id {b['id']} --outcome WIN"
+            loss_cmd = f"python log_result.py --id {b['id']} --outcome LOSS"
+            void_cmd = f"python log_result.py --id {b['id']} --outcome VOID"
+
+            cards.append(f"""
+            <div class="pending-card">
+              <div class="pending-head">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <span class="pending-id">{b['id']}</span>
+                  {_slip_badge(b.get('slip_type','?'))}
+                  <span class="badge badge-pending">Pending</span>
+                </div>
+                <div style="font-size:.8rem;color:var(--muted)">{b.get('date','')} · stake {_money(b.get('stake'))} · odds {_odds(b.get('combined_odds'))}</div>
+              </div>
+              <div class="pending-body">
+                <div class="pending-legs">{legs_html}</div>
+                <div class="log-commands">
+                  <button class="log-cmd-btn win"  onclick="logResult('{b['id']}','WIN')">✓ Win</button>
+                  <button class="log-cmd-btn loss" onclick="logResult('{b['id']}','LOSS')">✗ Loss</button>
+                  <button class="log-cmd-btn void" onclick="logResult('{b['id']}','VOID')">↩ Void</button>
+                  <button class="copy-btn" onclick="copyText('{html.escape(win_cmd)}', this)" style="margin-left:auto">Copy WIN cmd</button>
+                </div>
+              </div>
+            </div>""")
+        pending_html = f"""
+        <div class="section-head"><div><h2>Pending bets</h2><div class="hint">Click a button to copy the log command — paste it in your terminal</div></div></div>
+        {"".join(cards)}"""
+    else:
+        pending_html = ""
+
+    # bet history table
+    recent = bk.get("recent_bets", [])
+    if recent:
+        rows = []
+        for b in recent:
+            outcome    = b.get("outcome")
+            payout     = b.get("payout")
+            pnl_b      = (payout or 0) - b.get("stake", 0) if outcome in ("WIN","LOSS") else None
+            pnl_str    = (f"{'+' if (pnl_b or 0) >= 0 else ''}{_money(pnl_b)}"
+                          if pnl_b is not None else "—")
+            pnl_c      = "text-green" if (pnl_b or 0) > 0 else ("text-red" if (pnl_b or 0) < 0 else "")
+            rows.append(
+                f"<tr>"
+                f"<td class='num text-muted'>{html.escape(str(b.get('date','?')))}</td>"
+                f"<td><code style='font-size:.78rem;color:var(--muted2)'>{b['id']}</code></td>"
+                f"<td>{_slip_badge(b.get('slip_type','?'))}</td>"
+                f"<td class='num'>{_money(b.get('stake'))}</td>"
+                f"<td class='num'>{_odds(b.get('combined_odds'))}</td>"
+                f"<td class='num'>{_money(payout) if payout is not None else '—'}</td>"
+                f"<td class='num {pnl_c}'>{pnl_str}</td>"
+                f"<td>{_outcome_badge(outcome)}</td>"
+                f"</tr>"
+            )
+        history_html = f"""
+        <div class="section-head"><div><h2>Bet history</h2><div class="hint">Most recent 20 bets</div></div></div>
+        <div class="full-table">
+          <div class="table-wrap">
+            <table class="bet-log-table">
+              <thead><tr>
+                <th>Date</th><th>ID</th><th>Slip</th><th>Stake</th>
+                <th>Odds</th><th>Payout</th><th>P&amp;L</th><th>Result</th>
+              </tr></thead>
+              <tbody>{"".join(rows)}</tbody>
+            </table>
+          </div>
+        </div>"""
+    else:
+        history_html = """
+        <div class="section-head"><div><h2>Bet history</h2></div></div>
+        <div class="empty">No bets logged yet. Run <code>python log_result.py --log --slip VALUE --stake 5 --odds 3.20</code> to log your first bet.</div>"""
+
+    return f"""
+    <div class="section-head"><div><h2>Bankroll tracker</h2><div class="hint">$100 → $1,000,000 goal</div></div></div>
+    {hero}
+    {stats_html}
+    {pending_html}
+    {history_html}"""
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Football / Basketball prediction tables
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _render_football(df: pd.DataFrame) -> str:
+    if df.empty:
+        return "<div class='empty'>No football fixtures in the current window.</div>"
+    rows = []
+    for _, r in df.iterrows():
+        lean, lp = _football_lean(r)
+        time_s   = _time_label(r.get("date"))
+        date_s   = _date_label(r.get("date")) + (f" {time_s}" if time_s else "")
+        rows.append(
             "<tr>"
-            f"<td class='num'>{html.escape(date)}</td>"
-            f"<td><span class='sport-badge'>{_esc(r.get('league'))}</span></td>"
-            f"<td class='match-cell'>{_esc(r.get('away'))}<span class='subline'>at {_esc(r.get('home'))}</span></td>"
-            f"<td class='num'>{_num(r.get('lambda_home'), 2)} - {_num(r.get('lambda_away'), 2)}</td>"
-            f"<td>{html.escape(lean)} <span class='subline'>{_pct(lean_prob)}</span></td>"
-            f"<td class='pct'>{_pct(r.get('p_home'))} / {_pct(r.get('p_draw'))} / {_pct(r.get('p_away'))}</td>"
-            f"<td class='pct'>{_pct(r.get('p_over25'))}</td>"
-            f"<td class='pct'>{_pct(r.get('p_btts'))}</td>"
-            f"<td>{_esc(r.get('top1_score'))}<span class='subline'>{_pct(r.get('top1_prob'))}</span></td>"
+            f"<td class='num'>{html.escape(date_s)}</td>"
+            f"<td><span class='sport-pill'>{_esc(r.get('league'))}</span></td>"
+            f"<td class='match-col'>{_esc(r.get('home'))}<span class='row-sub'>vs {_esc(r.get('away'))}</span></td>"
+            f"<td class='num'>{_num(r.get('lambda_home'),2)} – {_num(r.get('lambda_away'),2)}</td>"
+            f"<td><strong>{html.escape(lean)}</strong><span class='row-sub'>{_pct(lp)}</span></td>"
+            f"<td class='num'>{_pct(r.get('p_home'))} / {_pct(r.get('p_draw'))} / {_pct(r.get('p_away'))}</td>"
+            f"<td class='num text-green'>{_pct(r.get('p_over25'))}</td>"
+            f"<td class='num'>{_pct(r.get('p_btts'))}</td>"
+            f"<td class='num'>{_esc(r.get('top1_score'))}<span class='row-sub'>{_pct(r.get('top1_prob'))}</span></td>"
+            f"<td class='num'>{_odds(r.get('odds_home'))} / {_odds(r.get('odds_draw'))} / {_odds(r.get('odds_away'))}</td>"
             "</tr>"
         )
     return f"""
-      <div class="table-frame">
+    <div class="full-table">
+      <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Date</th><th>Lg</th><th>Match</th><th>xG</th><th>Lean</th>
-            <th>H/D/A</th><th>Over 2.5</th><th>BTTS</th><th>Top score</th>
+            <th>Date</th><th>League</th><th>Match</th><th>xG</th><th>Lean</th>
+            <th>1X2</th><th>Over 2.5</th><th>BTTS</th><th>Top Score</th><th>Odds H/D/A</th>
           </tr></thead>
-          <tbody>{"".join(body_rows)}</tbody>
+          <tbody>{"".join(rows)}</tbody>
         </table>
       </div>
-    """
+    </div>"""
 
 
-def _render_basketball_predictions(predictions: pd.DataFrame) -> str:
-    if predictions.empty:
-        return "<div class='empty'>No NBA or EuroLeague fixtures in the selected window.</div>"
-
-    body_rows = []
-    for _, r in predictions.iterrows():
-        lean, lean_prob = _basketball_lean(r)
-        time = _time_label(r.get("date"))
-        date = _date_label(r.get("date")) + (f" {time}" if time else "")
-        spread = "-"
+def _render_basketball(df: pd.DataFrame) -> str:
+    if df.empty:
+        return "<div class='empty'>No NBA or EuroLeague fixtures in the current window.</div>"
+    rows = []
+    for _, r in df.iterrows():
+        lean, lp = _basketball_lean(r)
+        time_s   = _time_label(r.get("date"))
+        date_s   = _date_label(r.get("date")) + (f" {time_s}" if time_s else "")
+        spread   = "—"
         if pd.notna(r.get("spread_home")):
-            spread = f"{_line(r.get('spread_home'))} home - {_pct(r.get('p_home_cover'))}"
-        total = "-"
+            sign = "+" if float(r["spread_home"]) > 0 else ""
+            spread = f"{sign}{float(r['spread_home']):.1f} ({_pct(r.get('p_home_cover'))})"
+        total = "—"
         if pd.notna(r.get("total_line")):
-            total = f"{_num(r.get('total_line'), 1)} - over {_pct(r.get('p_over_total'))}"
-        body_rows.append(
+            total = f"{_num(r.get('total_line'),1)} · over {_pct(r.get('p_over_total'))}"
+        rows.append(
             "<tr>"
-            f"<td class='num'>{html.escape(date)}</td>"
-            f"<td><span class='sport-badge'>{_esc(r.get('league'))}</span></td>"
-            f"<td class='match-cell'>{_esc(r.get('away'))}<span class='subline'>at {_esc(r.get('home'))}</span></td>"
-            f"<td class='num'>{_num(r.get('pred_home_score'), 1)} - {_num(r.get('pred_away_score'), 1)}</td>"
-            f"<td>{html.escape(lean)} <span class='subline'>{_pct(lean_prob)}</span></td>"
-            f"<td class='pct'>{_pct(r.get('p_home'))} / {_pct(r.get('p_away'))}</td>"
+            f"<td class='num'>{html.escape(date_s)}</td>"
+            f"<td><span class='sport-pill'>{_esc(r.get('league'))}</span></td>"
+            f"<td class='match-col'>{_esc(r.get('home'))}<span class='row-sub'>vs {_esc(r.get('away'))}</span></td>"
+            f"<td class='num'>{_num(r.get('pred_home_score'),1)} – {_num(r.get('pred_away_score'),1)}</td>"
+            f"<td><strong>{html.escape(lean)}</strong><span class='row-sub'>{_pct(lp)}</span></td>"
+            f"<td class='num'>{_pct(r.get('p_home'))} / {_pct(r.get('p_away'))}</td>"
             f"<td class='num'>{html.escape(spread)}</td>"
             f"<td class='num'>{html.escape(total)}</td>"
             "</tr>"
         )
     return f"""
-      <div class="table-frame">
+    <div class="full-table">
+      <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Date</th><th>Lg</th><th>Match</th><th>Projection</th>
-            <th>Lean</th><th>H/A</th><th>Spread</th><th>Total</th>
+            <th>Date</th><th>League</th><th>Match</th><th>Projection</th>
+            <th>Lean</th><th>H / A</th><th>Spread</th><th>Total</th>
           </tr></thead>
-          <tbody>{"".join(body_rows)}</tbody>
+          <tbody>{"".join(rows)}</tbody>
         </table>
       </div>
-    """
+    </div>"""
 
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Main render
+# ──────────────────────────────────────────────────────────────────────────────
 
 def render(
-    football_predictions: pd.DataFrame,
-    basketball_predictions: pd.DataFrame,
+    football: pd.DataFrame,
+    basketball: pd.DataFrame,
     slips: dict,
     run_ts: datetime,
+    bankroll: dict | None = None,
+    kelly: dict | None = None,
 ) -> str:
-    date_range = _date_range(football_predictions, basketball_predictions)
-    total_fixtures = len(football_predictions) + len(basketball_predictions)
+    if bankroll is None:
+        bankroll = {"starting_capital": 100.0, "current_balance": 100.0, "bets": [],
+                    "pending": [], "recent_bets": [], "total_bets": 0, "resolved_bets": 0,
+                    "pending_bets": 0, "wins": 0, "losses": 0, "total_staked": 0,
+                    "total_returned": 0, "net_profit": 0, "roi_pct": 0, "hit_rate_pct": 0,
+                    "balance_change_pct": 0}
+    if kelly is None:
+        kelly = {}
+
+    date_range  = _date_range(football, basketball)
+    total_fx    = len(football) + len(basketball)
+    balance     = bankroll.get("current_balance", 100.0)
+    pending_n   = bankroll.get("pending_bets", 0)
 
     return f"""<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Sports predictor - {date_range}</title>
+<title>PredictorPro — {date_range}</title>
 {CSS}
 {JS}
-</head><body>
-<header class="masthead">
-  <div class="masthead-inner">
-    <div class="league-strip">
-      <strong>Sports Predictor</strong>
-      <span>Football | NBA | EuroLeague</span>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="header-top">
+      <div class="brand">
+        <div class="brand-icon">⚽</div>
+        <div>
+          <div class="brand-name">PredictorPro</div>
+          <div class="brand-sub">AI-Powered Sports Intelligence</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="live-badge"><div class="live-dot"></div>Live</div>
+      </div>
     </div>
-    <h1>Daily betting board</h1>
-    <p class="dek">Model probabilities, projected scores, and consolidated slips in a compact game-day layout.</p>
-    <div class="run-meta">
-      <span class="pill">Run {run_ts.strftime('%Y-%m-%d %H:%M')}</span>
-      <span class="pill">Window {html.escape(date_range)}</span>
-      <span class="pill">{total_fixtures} fixtures</span>
-      <span class="pill">{len(slips)} slip variants</span>
+    <div class="header-title">Daily Betting Board</div>
+    <div class="header-sub">Model-driven predictions · Kelly staking · Real-time P&L tracking</div>
+    <div class="pills-row">
+      <span class="pill">Run <strong>{run_ts.strftime('%d %b %Y %H:%M')}</strong></span>
+      <span class="pill">Window <strong>{html.escape(date_range)}</strong></span>
+      <span class="pill"><strong>{total_fx}</strong> fixtures</span>
+      <span class="pill"><strong>{len(slips)}</strong> slips</span>
+      <span class="pill green">Balance <strong>{_money(balance)}</strong></span>
+      {f'<span class="pill" style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3);color:var(--gold)"><strong>{pending_n}</strong> pending bet{"s" if pending_n != 1 else ""}</span>' if pending_n else ''}
     </div>
   </div>
+  {_ticker_html(football, basketball)}
 </header>
 
 <main class="shell">
-  <nav class="main-tabs" aria-label="Report sections">
-    <button class="main-tab" data-target="overview-panel" aria-selected="true" onclick="showTab('overview-panel')" type="button">Overview</button>
-    <button class="main-tab" data-target="slips-panel" aria-selected="false" onclick="showTab('slips-panel')" type="button">Slips</button>
-    <button class="main-tab" data-target="football-panel" aria-selected="false" onclick="showTab('football-panel')" type="button">Football</button>
-    <button class="main-tab" data-target="basketball-panel" aria-selected="false" onclick="showTab('basketball-panel')" type="button">NBA &amp; Euro basketball</button>
+  <nav class="nav-tabs" aria-label="Sections">
+    <button class="nav-tab" data-tab="tab-overview"   aria-selected="true"  onclick="showTab('tab-overview')"   type="button"><span class="tab-icon">📊</span>Overview</button>
+    <button class="nav-tab" data-tab="tab-slips"      aria-selected="false" onclick="showTab('tab-slips')"      type="button"><span class="tab-icon">🎯</span>Slips &amp; Stakes</button>
+    <button class="nav-tab" data-tab="tab-bankroll"   aria-selected="false" onclick="showTab('tab-bankroll')"   type="button"><span class="tab-icon">💰</span>Bankroll{f' <span class="badge badge-pending" style="margin-left:4px">{pending_n}</span>' if pending_n else ''}</button>
+    <button class="nav-tab" data-tab="tab-football"   aria-selected="false" onclick="showTab('tab-football')"   type="button"><span class="tab-icon">⚽</span>Football</button>
+    <button class="nav-tab" data-tab="tab-basketball" aria-selected="false" onclick="showTab('tab-basketball')" type="button"><span class="tab-icon">🏀</span>Basketball</button>
   </nav>
 
-  <section id="overview-panel" class="main-panel active">
-    <div class="section-head">
-      <div>
-        <h2>Board snapshot</h2>
-        <div class="muted">Quick read before opening the detailed tabs.</div>
-      </div>
-    </div>
-    {_render_metrics(football_predictions, basketball_predictions, slips)}
-    <div class="section-head">
-      <div>
-        <h2>Upcoming fixtures</h2>
-        <div class="muted">Sorted by kickoff or tipoff time.</div>
-      </div>
-    </div>
-    {_render_ticker(football_predictions, basketball_predictions)}
-  </section>
-
-  <section id="slips-panel" class="main-panel">
-    <div class="section-head">
-      <div>
-        <h2>Consolidated slips</h2>
-        <div class="muted">One pick per fixture. Fair odds = 1 / prob. Edge = model prob / market implied - 1.</div>
-      </div>
-    </div>
-    {_render_slips(slips)}
-  </section>
-
-  <section id="football-panel" class="main-panel">
-    <div class="section-head">
-      <div>
-        <h2>Football predictions</h2>
-        <div class="muted">1X2, totals, BTTS, and top scoreline projections.</div>
-      </div>
-    </div>
-    {_render_football_predictions(football_predictions)}
-  </section>
-
-  <section id="basketball-panel" class="main-panel">
-    <div class="section-head">
-      <div>
-        <h2>NBA and Euro basketball</h2>
-        <div class="muted">Moneyline, projected score, spread, and total board where lines are available.</div>
-      </div>
-    </div>
-    {_render_basketball_predictions(basketball_predictions)}
-  </section>
+  <div id="tab-overview"   class="panel active">{_render_overview(football, basketball, slips, bankroll, kelly)}</div>
+  <div id="tab-slips"      class="panel">{_render_slips(slips, kelly)}</div>
+  <div id="tab-bankroll"   class="panel">{_render_bankroll(bankroll)}</div>
+  <div id="tab-football"   class="panel">
+    <div class="section-head"><div><h2>Football predictions</h2><div class="hint">1X2 · Totals · BTTS · Top scoreline</div></div></div>
+    {_render_football(football)}
+  </div>
+  <div id="tab-basketball" class="panel">
+    <div class="section-head"><div><h2>NBA &amp; EuroLeague</h2><div class="hint">Moneyline · projected score · spread · total</div></div></div>
+    {_render_basketball(basketball)}
+  </div>
 
   <footer>
-    Models: football Elo + Dixon-Coles Poisson; basketball Elo + normal margin/total model.
-    Data: football-data.co.uk, ESPN public scoreboard, EuroLeague live API.
-    For analysis only - not betting advice.
+    PredictorPro — football Elo + Dixon-Coles Poisson · basketball Elo + normal model
+    · data: football-data.co.uk, ESPN, EuroLeague API · fractional Kelly staking ·
+    <strong>For analysis only — not betting advice.</strong>
   </footer>
 </main>
-</body></html>
-"""
+
+<div class="toast" id="toast"></div>
+</body></html>"""
