@@ -35,7 +35,7 @@ def kelly_stake(
     dict with keys:
         edge                -- model edge (prob * odds - 1)
         kelly_f             -- full-Kelly fraction
-        recommended_stake   -- what to actually bet (£/$)
+        recommended_stake   -- what to actually bet (GHS)
         capped              -- True if max_bet_pct limit was binding
         expected_profit     -- stake * edge
         potential_payout    -- stake * decimal_odds

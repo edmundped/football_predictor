@@ -677,7 +677,9 @@ def _odds(x) -> str:
 def _money(x) -> str:
     if x is None:
         return "—"
-    return f"£{float(x):.2f}"
+    value = float(x)
+    sign = "-" if value < 0 else ""
+    return f"{sign}GHS {abs(value):,.2f}"
 
 def _num(x, d=1) -> str:
     if x is None or (isinstance(x, float) and math.isnan(x)):

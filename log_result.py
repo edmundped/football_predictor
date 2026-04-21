@@ -51,18 +51,25 @@ DIM    = lambda t: _c("2", t)
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+CURRENCY = "GHS"
+
+def _money(amount: float) -> str:
+    value = float(amount)
+    sign = "-" if value < 0 else ""
+    return f"{sign}{CURRENCY} {abs(value):,.2f}"
+
 def _print_summary() -> None:
     s = summary()
     balance_colour = GREEN if s["net_profit"] >= 0 else RED
-    balance_text = f"£{s['current_balance']:.2f}"
+    balance_text = _money(s["current_balance"])
     profit_prefix = "+" if s["net_profit"] >= 0 else ""
-    profit_text = f"{profit_prefix}£{s['net_profit']:.2f}"
+    profit_text = f"{profit_prefix}{_money(s['net_profit'])}"
     roi_text = f"{s['roi_pct']:+.2f}%"
     print()
     print(BOLD("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
     print(BOLD("  BANKROLL SUMMARY"))
     print(BOLD("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"))
-    print(f"  Starting capital : £{s['starting_capital']:.2f}")
+    print(f"  Starting capital : {_money(s['starting_capital'])}")
     print(f"  Current balance  : {balance_colour(balance_text)}")
     print(f"  Net profit       : {balance_colour(profit_text)}")
     print(f"  ROI              : {balance_colour(roi_text)}")
@@ -84,7 +91,7 @@ def _print_summary() -> None:
     bar_len = 40
     filled  = int(bar_len * pct / 100)
     bar     = "█" * filled + "░" * (bar_len - filled)
-    print(f"  Goal  $100 → $1,000,000")
+    print(f"  Goal  {_money(start)} -> {_money(goal)}")
     print(f"  [{GREEN(bar)}] {pct:.2f}%")
     print()
 
@@ -102,7 +109,7 @@ def _print_pending() -> list[dict]:
                 for lg in (b.get("legs") or [])
             )
             print(f"  {CYAN(b['id'])}  {b['date']}  {BOLD(b['slip_type'])}  "
-                  f"stake=£{b['stake']:.2f}  odds={b['combined_odds']:.2f}")
+                  f"stake={_money(b['stake'])}  odds={b['combined_odds']:.2f}")
             if legs_str:
                 print(f"           {DIM(legs_str)}")
     return pending
@@ -122,15 +129,15 @@ def _interactive() -> None:
             resolved = resolve_bet(bet["id"], "WIN")
             payout   = resolved["payout"]
             bal      = get_bankroll()["current_balance"]
-            print(GREEN(f"    ✓ WIN  — payout £{payout:.2f}  |  balance now £{bal:.2f}"))
+            print(GREEN(f"    ✓ WIN  — payout {_money(payout)}  |  balance now {_money(bal)}"))
         elif choice.startswith("l"):
             resolve_bet(bet["id"], "LOSS")
             bal = get_bankroll()["current_balance"]
-            print(RED(f"    ✗ LOSS — balance now £{bal:.2f}"))
+            print(RED(f"    ✗ LOSS — balance now {_money(bal)}"))
         elif choice.startswith("v"):
             resolve_bet(bet["id"], "VOID")
             bal = get_bankroll()["current_balance"]
-            print(YELLOW(f"    ↩ VOID — stake refunded  |  balance now £{bal:.2f}"))
+            print(YELLOW(f"    ↩ VOID — stake refunded  |  balance now {_money(bal)}"))
         else:
             print(DIM("    Skipped."))
         print()
@@ -185,8 +192,8 @@ def main() -> int:
         outcome_colour = GREEN if args.outcome == "WIN" else (RED if args.outcome == "LOSS" else YELLOW)
         print(outcome_colour(f"  {args.outcome}  — bet {args.id}"))
         if resolved.get("payout"):
-            print(f"  Payout: £{resolved['payout']:.2f}")
-        print(f"  Balance now: £{bal:.2f}")
+            print(f"  Payout: {_money(resolved['payout'])}")
+        print(f"  Balance now: {_money(bal)}")
         return 0
 
     # default: interactive mode

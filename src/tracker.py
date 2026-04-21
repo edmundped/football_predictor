@@ -79,7 +79,7 @@ def log_bet(
 
     if data["current_balance"] < stake:
         raise ValueError(
-            f"Insufficient balance: £{data['current_balance']:.2f} < stake £{stake:.2f}"
+            f"Insufficient balance: GHS {data['current_balance']:,.2f} < stake GHS {stake:,.2f}"
         )
 
     data["current_balance"] = round(data["current_balance"] - stake, 2)
