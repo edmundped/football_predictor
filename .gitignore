@@ -1,0 +1,31 @@
+# macOS / editor noise
+.DS_Store
+
+# Python bytecode and local caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Generated runtime data and reports
+data/
+outputs/
+
+# Logs and scratch files
+*.log
+*.tmp
+tmp/

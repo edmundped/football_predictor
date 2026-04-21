@@ -1,0 +1,88 @@
+# football_predictor config
+# Run with: python run.py
+
+# Leagues to include. Codes match football-data.co.uk.
+#   E0  Premier League      SP1 La Liga
+#   E1  Championship        SP2 Segunda
+#   E2  League One          D1  Bundesliga
+#   E3  League Two          D2  2. Bundesliga
+#   I1  Serie A             F1  Ligue 1
+#   I2  Serie B             F2  Ligue 2
+#   N1  Eredivisie          P1  Primeira Liga
+#   B1  Jupiler League      T1  Super Lig
+#   G1  Greek Super League  SC0 Scottish Premiership
+leagues:
+  - E0
+  - SP1
+  - I1
+  - D1
+  - F1
+
+# Number of past seasons to train Elo on. 3 is plenty for stable ratings.
+history_seasons: 3
+
+# Current season code. Format: last two digits of start year + last two of end year.
+# 2025-26 -> "2526"
+current_season: "2526"
+
+# How far ahead to predict (days from today).
+lookahead_days: 3
+
+# Elo tuning
+elo:
+  k_factor: 20          # sensitivity to recent results
+  home_advantage: 65    # Elo points of home edge
+  goal_diff_weight: 1.0 # amplifies margin-of-victory
+
+# Goal model (league average starting point; gets refined per-league)
+goals:
+  league_avg_home: 1.50
+  league_avg_away: 1.15
+  dixon_coles_rho: -0.10  # low-score correlation correction
+
+# Basketball model. NBA uses ESPN scoreboard data; EuroLeague uses EuroLeague API data.
+basketball:
+  enabled: true
+  leagues:
+    - NBA
+    - EuroLeague
+  history_days: 180
+  nba_limit: 500
+  nba_chunk_days: 35
+  cache_hours: 6
+  # Optional override. Leave null to infer from today's date.
+  # EuroLeague 2025-26 -> 2025
+  euroleague_season_start_year:
+  elo:
+    k_factor: 18
+    home_advantage_elo: 55
+    home_advantage_points: 2.5
+    margin_weight: 1.0
+    rating_points_scale: 28.0
+  model:
+    league_avg_home_points: 104.0
+    league_avg_away_points: 101.5
+    margin_std: 12.0
+    total_std: 15.0
+
+# Slip builder
+slip:
+  min_market_prob: 0.55   # picks must pass this to be eligible at all
+  max_per_slip: 7
+  safe_legs: 3            # target legs for safe slip
+  safe_min_leg_prob: 0.72
+  balanced_legs: 4
+  balanced_min_leg_prob: 0.60
+  aggressive_legs: 6
+  aggressive_min_leg_prob: 0.50
+  value_min_edge: 0.05    # required (model_prob / market_implied - 1)
+
+# Paths (relative to project root)
+paths:
+  data_dir: data
+  output_dir: outputs
+
+# Scrape politeness
+http:
+  timeout_seconds: 30
+  cache_hours: 6          # re-download CSVs at most every N hours
