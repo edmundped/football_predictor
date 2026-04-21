@@ -80,7 +80,7 @@ slip:
 # Paths (relative to project root)
 paths:
   data_dir: data
-  output_dir: outputs
+  output_dir: docs
 
 # Scrape politeness
 http:

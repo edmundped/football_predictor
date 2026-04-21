@@ -9,8 +9,8 @@ pip install -r requirements.txt
 python run.py
 ```
 
-Outputs land in `outputs/`:
-- `output.html` — opens in any browser. Full report: consolidated slip variants plus football and basketball prediction tabs.
+Outputs land in `docs/`:
+- `index.html` — opens in any browser and is ready for GitHub Pages. Full report: consolidated slip variants plus football and basketball prediction tabs.
 - `predictions.csv` — consolidated football + basketball prediction export. This is overwritten on every run.
 
 ## What the tool does
@@ -49,6 +49,16 @@ python run.py --offline            # only use cached CSVs, no network
 python run.py --config other.yaml
 ```
 
+## GitHub Pages
+
+The generated site is written to `docs/index.html`. In GitHub, enable Pages from:
+
+```text
+Settings -> Pages -> Deploy from a branch -> main -> /docs
+```
+
+After each run, commit and push the refreshed `docs/index.html` and `docs/predictions.csv` to update the public page.
+
 ## Data source and freshness
 
 - Historical results: `football-data.co.uk/mmz4281/{season}/{league}.csv`
@@ -84,7 +94,7 @@ football_predictor/
 │   ├── slip_builder.py   # consolidated SAFE / BALANCED / AGGRESSIVE / VALUE variants
 │   └── report.py         # standalone HTML report
 ├── data/                 # cached CSVs (auto-populated)
-└── outputs/              # reports + CSV dumps
+└── docs/                 # GitHub Pages output
 ```
 
 ## Extending it

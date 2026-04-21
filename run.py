@@ -8,8 +8,8 @@ Usage:
     python run.py --config config.yaml
 
 Outputs, overwritten on every run:
-    outputs/output.html
-    outputs/predictions.csv
+    docs/index.html
+    docs/predictions.csv
 """
 
 from __future__ import annotations
@@ -154,7 +154,7 @@ def main() -> int:
     slips = slip_builder.build_slips(all_predictions, cfg["slip"])
 
     # write stable artifacts, overwriting the prior run
-    html_path = out_dir / "output.html"
+    html_path = out_dir / "index.html"
     html_path.write_text(report.render(predictions, basketball_predictions, slips, run_ts), encoding="utf-8")
 
     predictions_path = out_dir / "predictions.csv"
