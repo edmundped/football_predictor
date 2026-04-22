@@ -13,6 +13,8 @@ Outputs land in `docs/`:
 - `index.html` — opens in any browser and is ready for GitHub Pages. Full report: consolidated slip variants plus football and basketball prediction tabs.
 - `predictions.csv` — consolidated football + basketball prediction export. This is overwritten on every run.
 
+Accuracy history is kept privately in `data/prediction_history.csv`; only the summary is rendered to the public report.
+
 ## What the tool does
 
 1. Downloads historical match CSVs + current-season fixtures for the leagues in `config.yaml`. First run can take about a minute with the expanded league list; afterwards it's cached for 6 hours.
@@ -23,9 +25,10 @@ Outputs land in `docs/`:
    - **SAFE** — short accumulator, each leg > 72% probability.
    - **BALANCED** — mid-length, each leg > 60%.
    - **AGGRESSIVE** — longer accumulator, each leg > 50%, higher payout.
-   - **BANKER_100** — priced accumulator from the consolidated pool, aiming for combined market odds of 100+.
+   - **ONE_CEDI_DREAM** — priced accumulator from the consolidated pool, aiming for combined market odds of 100+.
    - **VALUE** — only when market odds are present in the source data: picks where model probability exceeds market implied probability by at least 5%. Sorted by edge, not raw probability.
-6. Renders a self-contained HTML report.
+6. Stores a private prediction history and joins later scores back to prior predictions for the Accuracy tab.
+7. Renders a self-contained HTML report.
 
 One-pick-per-fixture is enforced across all slips so the independence assumption behind combined probability is at least defensible.
 
@@ -41,6 +44,7 @@ Edit `config.yaml`:
 - `basketball.enabled` — turn NBA/EuroLeague predictions on or off.
 - `basketball.leagues` — currently supports `NBA` and `EuroLeague`.
 - `basketball.history_days` — how many recent basketball days to train on.
+- `community.endpoint` — optional write/read API for community codes. Without an endpoint, the Community Codes tab is browser-local only.
 
 ## Command-line flags
 
@@ -92,7 +96,8 @@ football_predictor/
 │   ├── ratings.py        # goal-weighted Elo
 │   ├── basketball_model.py
 │   ├── model.py          # Dixon-Coles Poisson scoreline matrix
-│   ├── slip_builder.py   # consolidated SAFE / BALANCED / AGGRESSIVE / BANKER_100 / VALUE variants
+│   ├── slip_builder.py   # consolidated SAFE / BALANCED / AGGRESSIVE / ONE_CEDI_DREAM / VALUE variants
+│   ├── accuracy.py       # prediction history and score checking
 │   └── report.py         # standalone HTML report
 ├── data/                 # cached CSVs (auto-populated)
 └── docs/                 # GitHub Pages output

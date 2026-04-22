@@ -2,7 +2,7 @@
 <html lang="en"><head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>PredictorPro — Tue 21 Apr – Fri 24 Apr</title>
+<title>PredictorPro — Wed 22 Apr – Sat 25 Apr</title>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -356,7 +356,13 @@ body {
 }
 .slip-card.value-card { border-color: rgba(168,85,247,0.4); box-shadow: 0 0 20px rgba(168,85,247,0.08); }
 .slip-card.safe-card  { border-color: rgba(16,185,129,0.3); }
-.slip-card.banker-card { border-color: rgba(245,158,11,0.42); box-shadow: 0 0 22px rgba(245,158,11,0.08); }
+.slip-card.dream-card {
+  grid-column: 1 / -1;
+  border-color: rgba(245,158,11,0.45);
+  box-shadow: 0 0 24px rgba(245,158,11,0.08);
+}
+.slip-card.dream-card .table-wrap { max-height: 440px; }
+.slip-card.dream-card .slip-name { white-space: normal; line-height: 1.15; }
 
 .slip-header {
   padding: 14px 16px;
@@ -377,7 +383,7 @@ body {
 .badge-balanced { background: var(--blue-dim);  color: var(--blue);  border: 1px solid rgba(59,130,246,0.3); }
 .badge-aggressive { background: var(--red-dim); color: var(--red);   border: 1px solid rgba(239,68,68,0.3); }
 .badge-value    { background: var(--purple-dim); color: var(--purple); border: 1px solid rgba(168,85,247,0.3); }
-.badge-banker   { background: rgba(245,158,11,0.1); color: var(--gold); border: 1px solid rgba(245,158,11,0.3); }
+.badge-dream    { background: rgba(245,158,11,0.1); color: var(--gold); border: 1px solid rgba(245,158,11,0.3); }
 .badge-win      { background: var(--green-dim); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
 .badge-loss     { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(239,68,68,0.3); }
 .badge-pending  { background: rgba(245,158,11,0.1); color: var(--gold); border: 1px solid rgba(245,158,11,0.3); }
@@ -505,6 +511,59 @@ td.match-col { min-width: 180px; font-weight: 700; }
 }
 .edge-pos { color: var(--green); font-weight: 700; }
 .edge-neg { color: var(--muted); }
+.result-ok { color: var(--green); font-weight: 800; }
+.result-bad { color: var(--red); font-weight: 800; }
+.result-na { color: var(--muted); font-weight: 700; }
+
+/* ── COMMUNITY CODES ── */
+.code-form {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.code-form-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(120px, .6fr) minmax(160px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+.field label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+.field input {
+  width: 100%;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  min-height: 38px;
+  padding: 8px 10px;
+}
+.field input:focus { outline: 1px solid rgba(16,185,129,0.5); border-color: rgba(16,185,129,0.45); }
+.submit-btn {
+  appearance: none;
+  background: var(--green);
+  border: 1px solid var(--green);
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  min-height: 38px;
+  padding: 8px 14px;
+  white-space: nowrap;
+}
+.status-line { color: var(--muted); font-size: 0.78rem; margin-top: 10px; }
 
 /* ── BET LOG TABLE ── */
 .bet-log-table th { background: #0c1118; }
@@ -602,8 +661,12 @@ footer {
   .bankroll-numbers { gap: 14px; }
   .bankroll-main .amount { font-size: 2rem; }
 }
+@media (max-width: 760px) {
+  .code-form-grid { grid-template-columns: 1fr; }
+}
 </style>
 
+<script>window.PREDICTOR_COMMUNITY = {"endpoint": "", "ttl_hours": 24};</script>
 
 <script>
 function showTab(id) {
@@ -632,12 +695,129 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2400);
 }
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+  }[ch]));
+}
+
 function logResult(betId, outcome) {
   const cmd = `python log_result.py --id ${betId} --outcome ${outcome}`;
   navigator.clipboard.writeText(cmd).then(() => {
     showToast(`Command copied — paste in your terminal (${outcome})`);
   });
 }
+
+function communitySettings() {
+  return window.PREDICTOR_COMMUNITY || { endpoint: '', ttl_hours: 24 };
+}
+
+function communityTtlMs() {
+  const cfg = communitySettings();
+  const hours = Number(cfg.ttl_hours || 24);
+  return Math.max(1, hours) * 60 * 60 * 1000;
+}
+
+function freshCodes(codes) {
+  const cutoff = Date.now() - communityTtlMs();
+  return (codes || []).filter(c => {
+    const t = new Date(c.created_at || 0).getTime();
+    return Number.isFinite(t) && t >= cutoff;
+  }).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+}
+
+function localCodes() {
+  try {
+    return freshCodes(JSON.parse(localStorage.getItem('predictorpro.community.codes') || '[]'));
+  } catch (_) {
+    return [];
+  }
+}
+
+function saveLocalCodes(codes) {
+  localStorage.setItem('predictorpro.community.codes', JSON.stringify(freshCodes(codes)));
+}
+
+function renderCommunityRows(codes) {
+  const tbody = document.getElementById('community-code-rows');
+  const empty = document.getElementById('community-empty');
+  if (!tbody || !empty) return;
+  const rows = freshCodes(codes);
+  empty.style.display = rows.length ? 'none' : 'block';
+  tbody.innerHTML = rows.map(c => {
+    const when = new Date(c.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return `<tr>
+      <td class="num">${escapeHtml(when)}</td>
+      <td style="font-weight:800">${escapeHtml(c.code)}</td>
+      <td class="num">${escapeHtml(c.odds || '')}</td>
+      <td>${escapeHtml(c.note || '')}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function loadCommunityCodes() {
+  const cfg = communitySettings();
+  const status = document.getElementById('community-status');
+  if (!document.getElementById('community-code-rows')) return;
+  if (!cfg.endpoint) {
+    const codes = localCodes();
+    renderCommunityRows(codes);
+    if (status) status.textContent = 'Browser-local board · expires after 24 hours';
+    return;
+  }
+  try {
+    const res = await fetch(cfg.endpoint, { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const payload = await res.json();
+    renderCommunityRows(payload.codes || payload || []);
+    if (status) status.textContent = 'Community board · expires after 24 hours';
+  } catch (_) {
+    renderCommunityRows(localCodes());
+    if (status) status.textContent = 'Community endpoint unavailable · showing browser-local codes';
+  }
+}
+
+async function submitCommunityCode(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const code = form.elements.code.value.trim();
+  if (!code) return;
+  const item = {
+    code,
+    odds: form.elements.odds.value.trim(),
+    note: form.elements.note.value.trim(),
+    created_at: new Date().toISOString()
+  };
+  const cfg = communitySettings();
+  if (cfg.endpoint) {
+    try {
+      const res = await fetch(cfg.endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(item)
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      showToast('Code submitted');
+      form.reset();
+      loadCommunityCodes();
+      return;
+    } catch (_) {
+      showToast('Endpoint unavailable; saved locally');
+    }
+  } else {
+    showToast('Code saved locally');
+  }
+  const codes = [item, ...localCodes()];
+  saveLocalCodes(codes);
+  renderCommunityRows(codes);
+  form.reset();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('community-form');
+  if (form) form.addEventListener('submit', submitCommunityCode);
+  loadCommunityCodes();
+});
 </script>
 
 </head>
@@ -660,15 +840,15 @@ function logResult(betId, outcome) {
     <div class="header-title">Daily Betting Board</div>
     <div class="header-sub">Model-driven predictions · Kelly staking · Real-time P&L tracking</div>
     <div class="pills-row">
-      <span class="pill">Run <strong>21 Apr 2026 17:35</strong></span>
-      <span class="pill">Window <strong>Tue 21 Apr – Fri 24 Apr</strong></span>
-      <span class="pill"><strong>61</strong> fixtures</span>
+      <span class="pill">Run <strong>22 Apr 2026 06:14</strong></span>
+      <span class="pill">Window <strong>Wed 22 Apr – Sat 25 Apr</strong></span>
+      <span class="pill"><strong>38</strong> fixtures</span>
       <span class="pill"><strong>5</strong> slips</span>
       <span class="pill green">Balance <strong>GHS 100.00</strong></span>
-      
+
     </div>
   </div>
-  <div class="ticker-strip"><div class="ticker-inner"><span class="ticker-item"><span class="league">B1</span><span class="teams">Genk v Charleroi</span><span class="odds">1.83</span><span class="text-muted">Genk 59.4%</span></span><span class="ticker-item"><span class="league">B1</span><span class="teams">Oud-Heverlee Leuven v Westerlo</span><span class="odds">2.88</span><span class="text-muted">Oud-Heverlee Leuven 42.2%</span></span><span class="ticker-item"><span class="league">B1</span><span class="teams">Standard v Antwerp</span><span class="odds">2.60</span><span class="text-muted">Standard 49.5%</span></span><span class="ticker-item"><span class="league">E0</span><span class="teams">Brighton v Chelsea</span><span class="odds">2.50</span><span class="text-muted">Brighton 48.3%</span></span><span class="ticker-item"><span class="league">E1</span><span class="teams">Coventry v Portsmouth</span><span class="odds">1.61</span><span class="text-muted">Coventry 61.6%</span></span><span class="ticker-item"><span class="league">E1</span><span class="teams">Leicester v Hull</span><span class="odds">1.86</span><span class="text-muted">Leicester 38.0%</span></span><span class="ticker-item"><span class="league">EuroLeague</span><span class="teams">PANATHINAIKOS AKTOR ATHENS v AS MONACO</span><span class="text-muted">PANATHINAIKOS AKTOR ATHENS 57.0%</span></span><span class="ticker-item"><span class="league">EuroLeague</span><span class="teams">FC BARCELONA v CRVENA ZVEZDA MERIDIANBET BELGRADE</span><span class="text-muted">FC BARCELONA 56.6%</span></span><span class="ticker-item"><span class="league">NBA</span><span class="teams">Boston Celtics v Philadelphia 76ers</span><span class="text-muted">Boston Celtics 70.1%</span></span><span class="ticker-item"><span class="league">NBA</span><span class="teams">San Antonio Spurs v Portland Trail Blazers</span><span class="text-muted">San Antonio Spurs 73.1%</span></span><span class="ticker-item"><span class="league">B1</span><span class="teams">Genk v Charleroi</span><span class="odds">1.83</span><span class="text-muted">Genk 59.4%</span></span><span class="ticker-item"><span class="league">B1</span><span class="teams">Oud-Heverlee Leuven v Westerlo</span><span class="odds">2.88</span><span class="text-muted">Oud-Heverlee Leuven 42.2%</span></span><span class="ticker-item"><span class="league">B1</span><span class="teams">Standard v Antwerp</span><span class="odds">2.60</span><span class="text-muted">Standard 49.5%</span></span><span class="ticker-item"><span class="league">E0</span><span class="teams">Brighton v Chelsea</span><span class="odds">2.50</span><span class="text-muted">Brighton 48.3%</span></span><span class="ticker-item"><span class="league">E1</span><span class="teams">Coventry v Portsmouth</span><span class="odds">1.61</span><span class="text-muted">Coventry 61.6%</span></span><span class="ticker-item"><span class="league">E1</span><span class="teams">Leicester v Hull</span><span class="odds">1.86</span><span class="text-muted">Leicester 38.0%</span></span><span class="ticker-item"><span class="league">EuroLeague</span><span class="teams">PANATHINAIKOS AKTOR ATHENS v AS MONACO</span><span class="text-muted">PANATHINAIKOS AKTOR ATHENS 57.0%</span></span><span class="ticker-item"><span class="league">EuroLeague</span><span class="teams">FC BARCELONA v CRVENA ZVEZDA MERIDIANBET BELGRADE</span><span class="text-muted">FC BARCELONA 56.6%</span></span><span class="ticker-item"><span class="league">NBA</span><span class="teams">Boston Celtics v Philadelphia 76ers</span><span class="text-muted">Boston Celtics 70.1%</span></span><span class="ticker-item"><span class="league">NBA</span><span class="teams">San Antonio Spurs v Portland Trail Blazers</span><span class="text-muted">San Antonio Spurs 73.1%</span></span></div></div>
+  <div class="ticker-strip"><div class="ticker-inner"><span class="ticker-item"><span class="league">B1</span><span class="teams">Club Brugge v Mechelen</span><span class="odds">1.22</span><span class="text-muted">Club Brugge 68.4%</span></span><span class="ticker-item"><span class="league">B1</span><span class="teams">St. Gilloise v Gent</span><span class="odds">1.44</span><span class="text-muted">St. Gilloise 71.9%</span></span><span class="ticker-item"><span class="league">E0</span><span class="teams">Bournemouth v Leeds</span><span class="odds">2.00</span><span class="text-muted">Bournemouth 46.9%</span></span><span class="ticker-item"><span class="league">E0</span><span class="teams">Burnley v Man City</span><span class="odds">19.00</span><span class="text-muted">Man City 51.7%</span></span><span class="ticker-item"><span class="league">E1</span><span class="teams">Birmingham v Preston</span><span class="odds">1.57</span><span class="text-muted">Birmingham 55.8%</span></span><span class="ticker-item"><span class="league">E1</span><span class="teams">Charlton v Ipswich</span><span class="odds">4.75</span><span class="text-muted">Charlton 37.7%</span></span><span class="ticker-item"><span class="league">NBA</span><span class="teams">Detroit Pistons v Orlando Magic</span><span class="text-muted">Detroit Pistons 64.5%</span></span><span class="ticker-item"><span class="league">NBA</span><span class="teams">Oklahoma City Thunder v Phoenix Suns</span><span class="text-muted">Oklahoma City Thunder 72.8%</span></span><span class="ticker-item"><span class="league">NBA</span><span class="teams">Atlanta Hawks v New York Knicks</span><span class="text-muted">Atlanta Hawks 52.4%</span></span><span class="ticker-item"><span class="league">NBA</span><span class="teams">Toronto Raptors v Cleveland Cavaliers</span><span class="text-muted">Cleveland Cavaliers 53.5%</span></span><span class="ticker-item"><span class="league">B1</span><span class="teams">Club Brugge v Mechelen</span><span class="odds">1.22</span><span class="text-muted">Club Brugge 68.4%</span></span><span class="ticker-item"><span class="league">B1</span><span class="teams">St. Gilloise v Gent</span><span class="odds">1.44</span><span class="text-muted">St. Gilloise 71.9%</span></span><span class="ticker-item"><span class="league">E0</span><span class="teams">Bournemouth v Leeds</span><span class="odds">2.00</span><span class="text-muted">Bournemouth 46.9%</span></span><span class="ticker-item"><span class="league">E0</span><span class="teams">Burnley v Man City</span><span class="odds">19.00</span><span class="text-muted">Man City 51.7%</span></span><span class="ticker-item"><span class="league">E1</span><span class="teams">Birmingham v Preston</span><span class="odds">1.57</span><span class="text-muted">Birmingham 55.8%</span></span><span class="ticker-item"><span class="league">E1</span><span class="teams">Charlton v Ipswich</span><span class="odds">4.75</span><span class="text-muted">Charlton 37.7%</span></span><span class="ticker-item"><span class="league">NBA</span><span class="teams">Detroit Pistons v Orlando Magic</span><span class="text-muted">Detroit Pistons 64.5%</span></span><span class="ticker-item"><span class="league">NBA</span><span class="teams">Oklahoma City Thunder v Phoenix Suns</span><span class="text-muted">Oklahoma City Thunder 72.8%</span></span><span class="ticker-item"><span class="league">NBA</span><span class="teams">Atlanta Hawks v New York Knicks</span><span class="text-muted">Atlanta Hawks 52.4%</span></span><span class="ticker-item"><span class="league">NBA</span><span class="teams">Toronto Raptors v Cleveland Cavaliers</span><span class="text-muted">Cleveland Cavaliers 53.5%</span></span></div></div>
 </header>
 
 <main class="shell">
@@ -676,13 +856,15 @@ function logResult(betId, outcome) {
     <button class="nav-tab" data-tab="tab-overview"   aria-selected="true"  onclick="showTab('tab-overview')"   type="button"><span class="tab-icon">📊</span>Overview</button>
     <button class="nav-tab" data-tab="tab-slips"      aria-selected="false" onclick="showTab('tab-slips')"      type="button"><span class="tab-icon">🎯</span>Slips &amp; Stakes</button>
     <button class="nav-tab" data-tab="tab-bankroll"   aria-selected="false" onclick="showTab('tab-bankroll')"   type="button"><span class="tab-icon">💰</span>Bankroll</button>
+    <button class="nav-tab" data-tab="tab-accuracy"   aria-selected="false" onclick="showTab('tab-accuracy')"   type="button"><span class="tab-icon">✅</span>Accuracy</button>
     <button class="nav-tab" data-tab="tab-football"   aria-selected="false" onclick="showTab('tab-football')"   type="button"><span class="tab-icon">⚽</span>Football</button>
     <button class="nav-tab" data-tab="tab-basketball" aria-selected="false" onclick="showTab('tab-basketball')" type="button"><span class="tab-icon">🏀</span>Basketball</button>
+    <button class="nav-tab" data-tab="tab-community" aria-selected="false" onclick="showTab('tab-community')" type="button"><span class="tab-icon">🧾</span>Community Codes</button>
   </nav>
 
   <div id="tab-overview"   class="panel active">
-    <div class="section-head"><div><h2>Today's board</h2><div class="hint">Tue 21 Apr – Fri 24 Apr</div></div></div>
-    
+    <div class="section-head"><div><h2>Today's board</h2><div class="hint">Wed 22 Apr – Sat 25 Apr</div></div></div>
+
     <div class="stat-grid">
       <div class="stat-card green-accent">
         <div class="stat-label">Balance</div>
@@ -696,211 +878,136 @@ function logResult(betId, outcome) {
       </div>
       <div class="stat-card blue-accent">
         <div class="stat-label">Fixtures</div>
-        <div class="stat-value">61</div>
-        <div class="stat-sub">50 football · 11 basketball</div>
+        <div class="stat-value">38</div>
+        <div class="stat-sub">27 football · 11 basketball</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Best EV</div>
-        <div class="stat-value text-green">+3.093</div>
+        <div class="stat-value text-green">+3.023</div>
         <div class="stat-sub">5 slip variants</div>
       </div>
     </div>
-    
+
     <div class="section-head"><div><h2>Upcoming fixtures</h2></div></div>
     <div class="fixture-ticker">
         <article class="match-card">
           <div class="match-card-top">
             <span class="league-tag">B1</span>
-            <span class="match-time">Tue 21 Apr</span>
+            <span class="match-time">Wed 22 Apr</span>
           </div>
           <div class="match-teams">
-            <div class="team">Genk</div>
+            <div class="team">Club Brugge</div>
             <div class="vs">vs</div>
-            <div class="team">Charleroi</div>
+            <div class="team">Mechelen</div>
           </div>
           <div class="match-lean">
-            <span class="lean-pick">Genk</span>
-            <span class="lean-prob">59.4%</span>
+            <span class="lean-pick">Club Brugge</span>
+            <span class="lean-prob">68.4%</span>
           </div>
         </article>
         <article class="match-card">
           <div class="match-card-top">
             <span class="league-tag">B1</span>
-            <span class="match-time">Tue 21 Apr</span>
+            <span class="match-time">Wed 22 Apr</span>
           </div>
           <div class="match-teams">
-            <div class="team">Oud-Heverlee Leuven</div>
+            <div class="team">St. Gilloise</div>
             <div class="vs">vs</div>
-            <div class="team">Westerlo</div>
+            <div class="team">Gent</div>
           </div>
           <div class="match-lean">
-            <span class="lean-pick">Oud-Heverlee Leuven</span>
-            <span class="lean-prob">42.2%</span>
-          </div>
-        </article>
-        <article class="match-card">
-          <div class="match-card-top">
-            <span class="league-tag">B1</span>
-            <span class="match-time">Tue 21 Apr</span>
-          </div>
-          <div class="match-teams">
-            <div class="team">Standard</div>
-            <div class="vs">vs</div>
-            <div class="team">Antwerp</div>
-          </div>
-          <div class="match-lean">
-            <span class="lean-pick">Standard</span>
-            <span class="lean-prob">49.5%</span>
+            <span class="lean-pick">St. Gilloise</span>
+            <span class="lean-prob">71.9%</span>
           </div>
         </article>
         <article class="match-card">
           <div class="match-card-top">
             <span class="league-tag">E0</span>
-            <span class="match-time">Tue 21 Apr</span>
-          </div>
-          <div class="match-teams">
-            <div class="team">Brighton</div>
-            <div class="vs">vs</div>
-            <div class="team">Chelsea</div>
-          </div>
-          <div class="match-lean">
-            <span class="lean-pick">Brighton</span>
-            <span class="lean-prob">48.3%</span>
-          </div>
-        </article>
-        <article class="match-card">
-          <div class="match-card-top">
-            <span class="league-tag">E1</span>
-            <span class="match-time">Tue 21 Apr</span>
-          </div>
-          <div class="match-teams">
-            <div class="team">Coventry</div>
-            <div class="vs">vs</div>
-            <div class="team">Portsmouth</div>
-          </div>
-          <div class="match-lean">
-            <span class="lean-pick">Coventry</span>
-            <span class="lean-prob">61.6%</span>
-          </div>
-        </article>
-        <article class="match-card">
-          <div class="match-card-top">
-            <span class="league-tag">E1</span>
-            <span class="match-time">Tue 21 Apr</span>
-          </div>
-          <div class="match-teams">
-            <div class="team">Leicester</div>
-            <div class="vs">vs</div>
-            <div class="team">Hull</div>
-          </div>
-          <div class="match-lean">
-            <span class="lean-pick">Leicester</span>
-            <span class="lean-prob">38.0%</span>
-          </div>
-        </article>
-        <article class="match-card">
-          <div class="match-card-top">
-            <span class="league-tag">E1</span>
-            <span class="match-time">Tue 21 Apr</span>
-          </div>
-          <div class="match-teams">
-            <div class="team">Norwich</div>
-            <div class="vs">vs</div>
-            <div class="team">Derby</div>
-          </div>
-          <div class="match-lean">
-            <span class="lean-pick">Norwich</span>
-            <span class="lean-prob">48.4%</span>
-          </div>
-        </article>
-        <article class="match-card">
-          <div class="match-card-top">
-            <span class="league-tag">E1</span>
-            <span class="match-time">Tue 21 Apr</span>
-          </div>
-          <div class="match-teams">
-            <div class="team">Oxford</div>
-            <div class="vs">vs</div>
-            <div class="team">Wrexham</div>
-          </div>
-          <div class="match-lean">
-            <span class="lean-pick">Oxford</span>
-            <span class="lean-prob">36.5%</span>
-          </div>
-        </article>
-        <article class="match-card">
-          <div class="match-card-top">
-            <span class="league-tag">EuroLeague</span>
-            <span class="match-time">Tue 21 Apr 20:00</span>
-          </div>
-          <div class="match-teams">
-            <div class="team">PANATHINAIKOS AKTOR ATHENS</div>
-            <div class="vs">vs</div>
-            <div class="team">AS MONACO</div>
-          </div>
-          <div class="match-lean">
-            <span class="lean-pick">PANATHINAIKOS AKTOR ATHENS</span>
-            <span class="lean-prob">57.0%</span>
-          </div>
-        </article>
-        <article class="match-card">
-          <div class="match-card-top">
-            <span class="league-tag">EuroLeague</span>
-            <span class="match-time">Tue 21 Apr 20:45</span>
-          </div>
-          <div class="match-teams">
-            <div class="team">FC BARCELONA</div>
-            <div class="vs">vs</div>
-            <div class="team">CRVENA ZVEZDA MERIDIANBET BELGRADE</div>
-          </div>
-          <div class="match-lean">
-            <span class="lean-pick">FC BARCELONA</span>
-            <span class="lean-prob">56.6%</span>
-          </div>
-        </article>
-        <article class="match-card">
-          <div class="match-card-top">
-            <span class="league-tag">NBA</span>
-            <span class="match-time">Tue 21 Apr 23:00</span>
-          </div>
-          <div class="match-teams">
-            <div class="team">Boston Celtics</div>
-            <div class="vs">vs</div>
-            <div class="team">Philadelphia 76ers</div>
-          </div>
-          <div class="match-lean">
-            <span class="lean-pick">Boston Celtics</span>
-            <span class="lean-prob">70.1%</span>
-          </div>
-        </article>
-        <article class="match-card">
-          <div class="match-card-top">
-            <span class="league-tag">NBA</span>
             <span class="match-time">Wed 22 Apr</span>
           </div>
           <div class="match-teams">
-            <div class="team">San Antonio Spurs</div>
+            <div class="team">Bournemouth</div>
             <div class="vs">vs</div>
-            <div class="team">Portland Trail Blazers</div>
+            <div class="team">Leeds</div>
           </div>
           <div class="match-lean">
-            <span class="lean-pick">San Antonio Spurs</span>
-            <span class="lean-prob">73.1%</span>
+            <span class="lean-pick">Bournemouth</span>
+            <span class="lean-prob">46.9%</span>
           </div>
         </article>
         <article class="match-card">
           <div class="match-card-top">
-            <span class="league-tag">NBA</span>
-            <span class="match-time">Wed 22 Apr 02:30</span>
+            <span class="league-tag">E0</span>
+            <span class="match-time">Wed 22 Apr</span>
           </div>
           <div class="match-teams">
-            <div class="team">Los Angeles Lakers</div>
+            <div class="team">Burnley</div>
             <div class="vs">vs</div>
-            <div class="team">Houston Rockets</div>
+            <div class="team">Man City</div>
           </div>
           <div class="match-lean">
-            <span class="lean-pick">Los Angeles Lakers</span>
-            <span class="lean-prob">58.6%</span>
+            <span class="lean-pick">Man City</span>
+            <span class="lean-prob">51.7%</span>
+          </div>
+        </article>
+        <article class="match-card">
+          <div class="match-card-top">
+            <span class="league-tag">E1</span>
+            <span class="match-time">Wed 22 Apr</span>
+          </div>
+          <div class="match-teams">
+            <div class="team">Birmingham</div>
+            <div class="vs">vs</div>
+            <div class="team">Preston</div>
+          </div>
+          <div class="match-lean">
+            <span class="lean-pick">Birmingham</span>
+            <span class="lean-prob">55.8%</span>
+          </div>
+        </article>
+        <article class="match-card">
+          <div class="match-card-top">
+            <span class="league-tag">E1</span>
+            <span class="match-time">Wed 22 Apr</span>
+          </div>
+          <div class="match-teams">
+            <div class="team">Charlton</div>
+            <div class="vs">vs</div>
+            <div class="team">Ipswich</div>
+          </div>
+          <div class="match-lean">
+            <span class="lean-pick">Charlton</span>
+            <span class="lean-prob">37.7%</span>
+          </div>
+        </article>
+        <article class="match-card">
+          <div class="match-card-top">
+            <span class="league-tag">E1</span>
+            <span class="match-time">Wed 22 Apr</span>
+          </div>
+          <div class="match-teams">
+            <div class="team">Middlesbrough</div>
+            <div class="vs">vs</div>
+            <div class="team">Sheffield Weds</div>
+          </div>
+          <div class="match-lean">
+            <span class="lean-pick">Middlesbrough</span>
+            <span class="lean-prob">72.7%</span>
+          </div>
+        </article>
+        <article class="match-card">
+          <div class="match-card-top">
+            <span class="league-tag">E1</span>
+            <span class="match-time">Wed 22 Apr</span>
+          </div>
+          <div class="match-teams">
+            <div class="team">Sheffield United</div>
+            <div class="vs">vs</div>
+            <div class="team">Blackburn</div>
+          </div>
+          <div class="match-lean">
+            <span class="lean-pick">Sheffield United</span>
+            <span class="lean-prob">54.9%</span>
           </div>
         </article>
         <article class="match-card">
@@ -917,6 +1024,81 @@ function logResult(betId, outcome) {
             <span class="lean-pick">Detroit Pistons</span>
             <span class="lean-prob">64.5%</span>
           </div>
+        </article>
+        <article class="match-card">
+          <div class="match-card-top">
+            <span class="league-tag">NBA</span>
+            <span class="match-time">Thu 23 Apr 01:30</span>
+          </div>
+          <div class="match-teams">
+            <div class="team">Oklahoma City Thunder</div>
+            <div class="vs">vs</div>
+            <div class="team">Phoenix Suns</div>
+          </div>
+          <div class="match-lean">
+            <span class="lean-pick">Oklahoma City Thunder</span>
+            <span class="lean-prob">72.8%</span>
+          </div>
+        </article>
+        <article class="match-card">
+          <div class="match-card-top">
+            <span class="league-tag">NBA</span>
+            <span class="match-time">Thu 23 Apr 23:00</span>
+          </div>
+          <div class="match-teams">
+            <div class="team">Atlanta Hawks</div>
+            <div class="vs">vs</div>
+            <div class="team">New York Knicks</div>
+          </div>
+          <div class="match-lean">
+            <span class="lean-pick">Atlanta Hawks</span>
+            <span class="lean-prob">52.4%</span>
+          </div>
+        </article>
+        <article class="match-card">
+          <div class="match-card-top">
+            <span class="league-tag">NBA</span>
+            <span class="match-time">Fri 24 Apr</span>
+          </div>
+          <div class="match-teams">
+            <div class="team">Toronto Raptors</div>
+            <div class="vs">vs</div>
+            <div class="team">Cleveland Cavaliers</div>
+          </div>
+          <div class="match-lean">
+            <span class="lean-pick">Cleveland Cavaliers</span>
+            <span class="lean-prob">53.5%</span>
+          </div>
+        </article>
+        <article class="match-card">
+          <div class="match-card-top">
+            <span class="league-tag">NBA</span>
+            <span class="match-time">Fri 24 Apr 01:30</span>
+          </div>
+          <div class="match-teams">
+            <div class="team">Minnesota Timberwolves</div>
+            <div class="vs">vs</div>
+            <div class="team">Denver Nuggets</div>
+          </div>
+          <div class="match-lean">
+            <span class="lean-pick">Denver Nuggets</span>
+            <span class="lean-prob">52.0%</span>
+          </div>
+        </article>
+        <article class="match-card">
+          <div class="match-card-top">
+            <span class="league-tag">NBA</span>
+            <span class="match-time">Fri 24 Apr 23:00</span>
+          </div>
+          <div class="match-teams">
+            <div class="team">Philadelphia 76ers</div>
+            <div class="vs">vs</div>
+            <div class="team">Boston Celtics</div>
+          </div>
+          <div class="match-lean">
+            <span class="lean-pick">Boston Celtics</span>
+            <span class="lean-prob">55.2%</span>
+          </div>
         </article></div>
     </div>
   <div id="tab-slips"      class="panel"><div class="slip-grid">
@@ -929,12 +1111,12 @@ function logResult(betId, outcome) {
         <span style="color:var(--muted);font-size:.82rem">3 legs</span>
       </div>
       <div class="slip-stats-row">
-        <div class="slip-stat-cell"><div class="lbl">Comb. Prob</div><div class="val text-green">52.1%</div></div>
-        <div class="slip-stat-cell"><div class="lbl">Fair Odds</div><div class="val">1.92</div></div>
+        <div class="slip-stat-cell"><div class="lbl">Comb. Prob</div><div class="val text-green">52.6%</div></div>
+        <div class="slip-stat-cell"><div class="lbl">Fair Odds</div><div class="val">1.90</div></div>
         <div class="slip-stat-cell"><div class="lbl">Market Odds</div><div class="val">2.75</div></div>
-        <div class="slip-stat-cell"><div class="lbl">EV / unit</div><div class="val text-green">+0.432</div></div>
+        <div class="slip-stat-cell"><div class="lbl">EV / unit</div><div class="val text-green">+0.444</div></div>
       </div>
-      
+
         <div class="kelly-banner">
           <div class="kelly-left">
             <div class="kl">Kelly Stake <span style='font-size:.7rem;color:var(--muted)'>(capped)</span></div>
@@ -945,7 +1127,7 @@ function logResult(betId, outcome) {
             <div class="ks">GHS 13.74</div>
           </div>
         </div>
-      
+
         <div class="copy-cmd">
           <code>python log_result.py --log --slip SAFE --stake 5.00 --odds 2.75</code>
           <button class="copy-btn" onclick="copyText('python log_result.py --log --slip SAFE --stake 5.00 --odds 2.75', this)">Copy</button>
@@ -956,7 +1138,7 @@ function logResult(betId, outcome) {
             <th>Sport</th><th>Match</th><th>Market</th><th>Pick</th>
             <th>Prob</th><th>Fair</th><th>Odds</th><th>Edge</th>
           </tr></thead>
-          <tbody><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Los Angeles Lakers v Houston Rockets<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 206.5</td><td class='num text-green'>84.0%</td><td class='num'>1.19</td><td class='num'>1.91</td><td class='num edge-pos'>+60.3%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Paris SG v Nantes<span class='row-sub'>F1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>79.6%</td><td class='num'>1.26</td><td class='num'>1.18</td><td class='num edge-neg'>-6.1%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>PSV Eindhoven v Zwolle<span class='row-sub'>N1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>78.0%</td><td class='num'>1.28</td><td class='num'>1.22</td><td class='num edge-neg'>-4.9%</td></tr></tbody>
+          <tbody><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Houston Rockets v Los Angeles Lakers<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 205.5</td><td class='num text-green'>84.7%</td><td class='num'>1.18</td><td class='num'>1.91</td><td class='num edge-pos'>+61.6%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Paris SG v Nantes<span class='row-sub'>F1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>79.6%</td><td class='num'>1.26</td><td class='num'>1.18</td><td class='num edge-neg'>-6.1%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>PSV Eindhoven v Zwolle<span class='row-sub'>N1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>78.0%</td><td class='num'>1.28</td><td class='num'>1.22</td><td class='num edge-neg'>-4.9%</td></tr></tbody>
         </table>
       </div>
     </article>
@@ -969,26 +1151,26 @@ function logResult(betId, outcome) {
         <span style="color:var(--muted);font-size:.82rem">4 legs</span>
       </div>
       <div class="slip-stats-row">
-        <div class="slip-stat-cell"><div class="lbl">Comb. Prob</div><div class="val text-green">39.6%</div></div>
-        <div class="slip-stat-cell"><div class="lbl">Fair Odds</div><div class="val">2.52</div></div>
+        <div class="slip-stat-cell"><div class="lbl">Comb. Prob</div><div class="val text-green">40.0%</div></div>
+        <div class="slip-stat-cell"><div class="lbl">Fair Odds</div><div class="val">2.50</div></div>
         <div class="slip-stat-cell"><div class="lbl">Market Odds</div><div class="val">3.35</div></div>
-        <div class="slip-stat-cell"><div class="lbl">EV / unit</div><div class="val text-green">+0.329</div></div>
+        <div class="slip-stat-cell"><div class="lbl">EV / unit</div><div class="val text-green">+0.340</div></div>
       </div>
-      
+
         <div class="kelly-banner">
           <div class="kelly-left">
             <div class="kl">Kelly Stake</div>
-            <div class="ks">GHS 3.49</div>
+            <div class="ks">GHS 3.61</div>
           </div>
           <div class="kelly-right">
             <div class="kl">Potential Payout</div>
-            <div class="ks">GHS 11.70</div>
+            <div class="ks">GHS 12.10</div>
           </div>
         </div>
-      
+
         <div class="copy-cmd">
-          <code>python log_result.py --log --slip BALANCED --stake 3.49 --odds 3.35</code>
-          <button class="copy-btn" onclick="copyText('python log_result.py --log --slip BALANCED --stake 3.49 --odds 3.35', this)">Copy</button>
+          <code>python log_result.py --log --slip BALANCED --stake 3.61 --odds 3.35</code>
+          <button class="copy-btn" onclick="copyText('python log_result.py --log --slip BALANCED --stake 3.61 --odds 3.35', this)">Copy</button>
         </div>
       <div class="table-wrap">
         <table>
@@ -996,7 +1178,7 @@ function logResult(betId, outcome) {
             <th>Sport</th><th>Match</th><th>Market</th><th>Pick</th>
             <th>Prob</th><th>Fair</th><th>Odds</th><th>Edge</th>
           </tr></thead>
-          <tbody><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Los Angeles Lakers v Houston Rockets<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 206.5</td><td class='num text-green'>84.0%</td><td class='num'>1.19</td><td class='num'>1.91</td><td class='num edge-pos'>+60.3%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Paris SG v Nantes<span class='row-sub'>F1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>79.6%</td><td class='num'>1.26</td><td class='num'>1.18</td><td class='num edge-neg'>-6.1%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>PSV Eindhoven v Zwolle<span class='row-sub'>N1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>78.0%</td><td class='num'>1.28</td><td class='num'>1.22</td><td class='num edge-neg'>-4.9%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Barcelona v Celta<span class='row-sub'>SP1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>76.0%</td><td class='num'>1.32</td><td class='num'>1.22</td><td class='num edge-neg'>-7.2%</td></tr></tbody>
+          <tbody><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Houston Rockets v Los Angeles Lakers<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 205.5</td><td class='num text-green'>84.7%</td><td class='num'>1.18</td><td class='num'>1.91</td><td class='num edge-pos'>+61.6%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Paris SG v Nantes<span class='row-sub'>F1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>79.6%</td><td class='num'>1.26</td><td class='num'>1.18</td><td class='num edge-neg'>-6.1%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>PSV Eindhoven v Zwolle<span class='row-sub'>N1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>78.0%</td><td class='num'>1.28</td><td class='num'>1.22</td><td class='num edge-neg'>-4.9%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Barcelona v Celta<span class='row-sub'>SP1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>76.0%</td><td class='num'>1.32</td><td class='num'>1.22</td><td class='num edge-neg'>-7.2%</td></tr></tbody>
         </table>
       </div>
     </article>
@@ -1009,26 +1191,26 @@ function logResult(betId, outcome) {
         <span style="color:var(--muted);font-size:.82rem">6 legs</span>
       </div>
       <div class="slip-stats-row">
-        <div class="slip-stat-cell"><div class="lbl">Comb. Prob</div><div class="val text-green">22.2%</div></div>
-        <div class="slip-stat-cell"><div class="lbl">Fair Odds</div><div class="val">4.50</div></div>
-        <div class="slip-stat-cell"><div class="lbl">Market Odds</div><div class="val">7.81</div></div>
-        <div class="slip-stat-cell"><div class="lbl">EV / unit</div><div class="val text-green">+0.735</div></div>
+        <div class="slip-stat-cell"><div class="lbl">Comb. Prob</div><div class="val text-green">21.6%</div></div>
+        <div class="slip-stat-cell"><div class="lbl">Fair Odds</div><div class="val">4.64</div></div>
+        <div class="slip-stat-cell"><div class="lbl">Market Odds</div><div class="val">6.71</div></div>
+        <div class="slip-stat-cell"><div class="lbl">EV / unit</div><div class="val text-green">+0.445</div></div>
       </div>
-      
+
         <div class="kelly-banner">
           <div class="kelly-left">
             <div class="kl">Kelly Stake</div>
-            <div class="ks">GHS 2.70</div>
+            <div class="ks">GHS 1.95</div>
           </div>
           <div class="kelly-right">
             <div class="kl">Potential Payout</div>
-            <div class="ks">GHS 21.09</div>
+            <div class="ks">GHS 13.08</div>
           </div>
         </div>
-      
+
         <div class="copy-cmd">
-          <code>python log_result.py --log --slip AGGRESSIVE --stake 2.70 --odds 7.81</code>
-          <button class="copy-btn" onclick="copyText('python log_result.py --log --slip AGGRESSIVE --stake 2.70 --odds 7.81', this)">Copy</button>
+          <code>python log_result.py --log --slip AGGRESSIVE --stake 1.95 --odds 6.71</code>
+          <button class="copy-btn" onclick="copyText('python log_result.py --log --slip AGGRESSIVE --stake 1.95 --odds 6.71', this)">Copy</button>
         </div>
       <div class="table-wrap">
         <table>
@@ -1036,33 +1218,47 @@ function logResult(betId, outcome) {
             <th>Sport</th><th>Match</th><th>Market</th><th>Pick</th>
             <th>Prob</th><th>Fair</th><th>Odds</th><th>Edge</th>
           </tr></thead>
-          <tbody><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Los Angeles Lakers v Houston Rockets<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 206.5</td><td class='num text-green'>84.0%</td><td class='num'>1.19</td><td class='num'>1.91</td><td class='num edge-pos'>+60.3%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Paris SG v Nantes<span class='row-sub'>F1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>79.6%</td><td class='num'>1.26</td><td class='num'>1.18</td><td class='num edge-neg'>-6.1%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>PSV Eindhoven v Zwolle<span class='row-sub'>N1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>78.0%</td><td class='num'>1.28</td><td class='num'>1.22</td><td class='num edge-neg'>-4.9%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Barcelona v Celta<span class='row-sub'>SP1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>76.0%</td><td class='num'>1.32</td><td class='num'>1.22</td><td class='num edge-neg'>-7.2%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Real Madrid v Alaves<span class='row-sub'>SP1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>75.7%</td><td class='num'>1.32</td><td class='num'>1.22</td><td class='num edge-neg'>-7.7%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Atlanta Hawks v New York Knicks<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 216.5</td><td class='num text-green'>74.1%</td><td class='num'>1.35</td><td class='num'>1.91</td><td class='num edge-pos'>+41.4%</td></tr></tbody>
+          <tbody><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Houston Rockets v Los Angeles Lakers<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 205.5</td><td class='num text-green'>84.7%</td><td class='num'>1.18</td><td class='num'>1.91</td><td class='num edge-pos'>+61.6%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Paris SG v Nantes<span class='row-sub'>F1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>79.6%</td><td class='num'>1.26</td><td class='num'>1.18</td><td class='num edge-neg'>-6.1%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>PSV Eindhoven v Zwolle<span class='row-sub'>N1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>78.0%</td><td class='num'>1.28</td><td class='num'>1.22</td><td class='num edge-neg'>-4.9%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Barcelona v Celta<span class='row-sub'>SP1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>76.0%</td><td class='num'>1.32</td><td class='num'>1.22</td><td class='num edge-neg'>-7.2%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Atlanta Hawks v New York Knicks<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 216.5</td><td class='num text-green'>74.1%</td><td class='num'>1.35</td><td class='num'>1.91</td><td class='num edge-pos'>+41.5%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Oklahoma City Thunder v Phoenix Suns<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Moneyline</span></td><td style='font-weight:700'>Oklahoma City Thunder ML</td><td class='num text-green'>72.8%</td><td class='num'>1.37</td><td class='num'>1.05</td><td class='num edge-neg'>-23.8%</td></tr></tbody>
         </table>
       </div>
     </article>
-    <article class="slip-card banker-card">
+    <article class="slip-card dream-card">
       <div class="slip-header">
         <div class="slip-title-row">
-          <span class="badge badge-banker">100X</span>
-          <span class="slip-name">100 Odds Banker</span>
+          <span class="badge badge-dream">1 CEDI</span>
+          <span class="slip-name">1 Cedi and a Small Dream</span>
         </div>
-        <span style="color:var(--muted);font-size:.82rem">16 legs</span>
+        <span style="color:var(--muted);font-size:.82rem">12 legs</span>
       </div>
       <div class="slip-stats-row">
-        <div class="slip-stat-cell"><div class="lbl">Comb. Prob</div><div class="val text-green">0.6%</div></div>
-        <div class="slip-stat-cell"><div class="lbl">Fair Odds</div><div class="val">181.58</div></div>
-        <div class="slip-stat-cell"><div class="lbl">Market Odds</div><div class="val">156.34</div></div>
-        <div class="slip-stat-cell"><div class="lbl">EV / unit</div><div class="val text-red">-0.139</div></div>
+        <div class="slip-stat-cell"><div class="lbl">Comb. Prob</div><div class="val text-green">2.7%</div></div>
+        <div class="slip-stat-cell"><div class="lbl">Fair Odds</div><div class="val">37.47</div></div>
+        <div class="slip-stat-cell"><div class="lbl">Market Odds</div><div class="val">141.47</div></div>
+        <div class="slip-stat-cell"><div class="lbl">EV / unit</div><div class="val text-green">+2.776</div></div>
       </div>
-      
-      
+
+        <div class="kelly-banner">
+          <div class="kelly-left">
+            <div class="kl">Dream Stake</div>
+            <div class="ks">GHS 1.00</div>
+          </div>
+          <div class="kelly-right">
+            <div class="kl">Potential Payout</div>
+            <div class="ks">GHS 141.47</div>
+          </div>
+        </div>
+
+        <div class="copy-cmd">
+          <code>python log_result.py --log --slip ONE_CEDI_DREAM --stake 1.00 --odds 141.47</code>
+          <button class="copy-btn" onclick="copyText('python log_result.py --log --slip ONE_CEDI_DREAM --stake 1.00 --odds 141.47', this)">Copy</button>
+        </div>
       <div class="table-wrap">
         <table>
           <thead><tr>
             <th>Sport</th><th>Match</th><th>Market</th><th>Pick</th>
             <th>Prob</th><th>Fair</th><th>Odds</th><th>Edge</th>
           </tr></thead>
-          <tbody><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Los Angeles Lakers v Houston Rockets<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 206.5</td><td class='num text-green'>84.0%</td><td class='num'>1.19</td><td class='num'>1.91</td><td class='num edge-pos'>+60.3%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Paris SG v Nantes<span class='row-sub'>F1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>79.6%</td><td class='num'>1.26</td><td class='num'>1.18</td><td class='num edge-neg'>-6.1%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>PSV Eindhoven v Zwolle<span class='row-sub'>N1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>78.0%</td><td class='num'>1.28</td><td class='num'>1.22</td><td class='num edge-neg'>-4.9%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Barcelona v Celta<span class='row-sub'>SP1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>76.0%</td><td class='num'>1.32</td><td class='num'>1.22</td><td class='num edge-neg'>-7.2%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Real Madrid v Alaves<span class='row-sub'>SP1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>75.7%</td><td class='num'>1.32</td><td class='num'>1.22</td><td class='num edge-neg'>-7.7%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Atlanta Hawks v New York Knicks<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 216.5</td><td class='num text-green'>74.1%</td><td class='num'>1.35</td><td class='num'>1.91</td><td class='num edge-pos'>+41.4%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>San Antonio Spurs v Portland Trail Blazers<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Moneyline</span></td><td style='font-weight:700'>San Antonio Spurs ML</td><td class='num text-green'>73.1%</td><td class='num'>1.37</td><td class='num'>1.15</td><td class='num edge-neg'>-15.6%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Oklahoma City Thunder v Phoenix Suns<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Moneyline</span></td><td style='font-weight:700'>Oklahoma City Thunder ML</td><td class='num text-green'>72.8%</td><td class='num'>1.37</td><td class='num'>1.05</td><td class='num edge-neg'>-23.7%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Middlesbrough v Sheffield Weds<span class='row-sub'>E1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>72.7%</td><td class='num'>1.38</td><td class='num'>1.15</td><td class='num edge-neg'>-16.4%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>St. Gilloise v Gent<span class='row-sub'>B1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>71.9%</td><td class='num'>1.39</td><td class='num'>1.44</td><td class='num edge-pos'>+3.6%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Boston Celtics v Philadelphia 76ers<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Moneyline</span></td><td style='font-weight:700'>Boston Celtics ML</td><td class='num text-green'>70.1%</td><td class='num'>1.43</td><td class='num'>1.12</td><td class='num edge-neg'>-21.6%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Toronto Raptors v Cleveland Cavaliers<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 219.5</td><td class='num text-green'>70.0%</td><td class='num'>1.43</td><td class='num'>1.91</td><td class='num edge-pos'>+33.6%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Detroit Pistons v Orlando Magic<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 218.5</td><td class='num text-green'>68.6%</td><td class='num'>1.46</td><td class='num'>1.91</td><td class='num edge-pos'>+31.0%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Club Brugge v Mechelen<span class='row-sub'>B1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>68.4%</td><td class='num'>1.46</td><td class='num'>1.22</td><td class='num edge-neg'>-16.5%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Cardiff v Port Vale<span class='row-sub'>E2</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>62.6%</td><td class='num'>1.60</td><td class='num'>1.25</td><td class='num edge-neg'>-21.7%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Coventry v Portsmouth<span class='row-sub'>E1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>61.6%</td><td class='num'>1.62</td><td class='num'>1.61</td><td class='num edge-neg'>-0.7%</td></tr></tbody>
+          <tbody><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Houston Rockets v Los Angeles Lakers<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 205.5</td><td class='num text-green'>84.7%</td><td class='num'>1.18</td><td class='num'>1.91</td><td class='num edge-pos'>+61.6%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Paris SG v Nantes<span class='row-sub'>F1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>79.6%</td><td class='num'>1.26</td><td class='num'>1.18</td><td class='num edge-neg'>-6.1%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>PSV Eindhoven v Zwolle<span class='row-sub'>N1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>78.0%</td><td class='num'>1.28</td><td class='num'>1.22</td><td class='num edge-neg'>-4.9%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Barcelona v Celta<span class='row-sub'>SP1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>76.0%</td><td class='num'>1.32</td><td class='num'>1.22</td><td class='num edge-neg'>-7.2%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Atlanta Hawks v New York Knicks<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 216.5</td><td class='num text-green'>74.1%</td><td class='num'>1.35</td><td class='num'>1.91</td><td class='num edge-pos'>+41.5%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Oklahoma City Thunder v Phoenix Suns<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Moneyline</span></td><td style='font-weight:700'>Oklahoma City Thunder ML</td><td class='num text-green'>72.8%</td><td class='num'>1.37</td><td class='num'>1.05</td><td class='num edge-neg'>-23.8%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Middlesbrough v Sheffield Weds<span class='row-sub'>E1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>72.7%</td><td class='num'>1.38</td><td class='num'>1.15</td><td class='num edge-neg'>-16.4%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>St. Gilloise v Gent<span class='row-sub'>B1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>71.9%</td><td class='num'>1.39</td><td class='num'>1.44</td><td class='num edge-pos'>+3.6%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Portland Trail Blazers v San Antonio Spurs<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 219.5</td><td class='num text-green'>70.6%</td><td class='num'>1.42</td><td class='num'>1.87</td><td class='num edge-pos'>+31.9%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Toronto Raptors v Cleveland Cavaliers<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 219.5</td><td class='num text-green'>70.0%</td><td class='num'>1.43</td><td class='num'>1.87</td><td class='num edge-pos'>+30.9%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Philadelphia 76ers v Boston Celtics<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 215.5</td><td class='num text-green'>69.8%</td><td class='num'>1.43</td><td class='num'>1.91</td><td class='num edge-pos'>+33.3%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Detroit Pistons v Orlando Magic<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 218.5</td><td class='num text-green'>68.7%</td><td class='num'>1.46</td><td class='num'>1.91</td><td class='num edge-pos'>+31.1%</td></tr></tbody>
         </table>
       </div>
     </article>
@@ -1075,12 +1271,12 @@ function logResult(betId, outcome) {
         <span style="color:var(--muted);font-size:.82rem">4 legs</span>
       </div>
       <div class="slip-stats-row">
-        <div class="slip-stat-cell"><div class="lbl">Comb. Prob</div><div class="val text-green">25.6%</div></div>
-        <div class="slip-stat-cell"><div class="lbl">Fair Odds</div><div class="val">3.91</div></div>
-        <div class="slip-stat-cell"><div class="lbl">Market Odds</div><div class="val">16.00</div></div>
-        <div class="slip-stat-cell"><div class="lbl">EV / unit</div><div class="val text-green">+3.093</div></div>
+        <div class="slip-stat-cell"><div class="lbl">Comb. Prob</div><div class="val text-green">30.9%</div></div>
+        <div class="slip-stat-cell"><div class="lbl">Fair Odds</div><div class="val">3.23</div></div>
+        <div class="slip-stat-cell"><div class="lbl">Market Odds</div><div class="val">13.01</div></div>
+        <div class="slip-stat-cell"><div class="lbl">EV / unit</div><div class="val text-green">+3.023</div></div>
       </div>
-      
+
         <div class="kelly-banner">
           <div class="kelly-left">
             <div class="kl">Kelly Stake <span style='font-size:.7rem;color:var(--muted)'>(capped)</span></div>
@@ -1088,13 +1284,13 @@ function logResult(betId, outcome) {
           </div>
           <div class="kelly-right">
             <div class="kl">Potential Payout</div>
-            <div class="ks">GHS 80.02</div>
+            <div class="ks">GHS 65.04</div>
           </div>
         </div>
-      
+
         <div class="copy-cmd">
-          <code>python log_result.py --log --slip VALUE --stake 5.00 --odds 16.00</code>
-          <button class="copy-btn" onclick="copyText('python log_result.py --log --slip VALUE --stake 5.00 --odds 16.00', this)">Copy</button>
+          <code>python log_result.py --log --slip VALUE --stake 5.00 --odds 13.01</code>
+          <button class="copy-btn" onclick="copyText('python log_result.py --log --slip VALUE --stake 5.00 --odds 13.01', this)">Copy</button>
         </div>
       <div class="table-wrap">
         <table>
@@ -1102,13 +1298,13 @@ function logResult(betId, outcome) {
             <th>Sport</th><th>Match</th><th>Market</th><th>Pick</th>
             <th>Prob</th><th>Fair</th><th>Odds</th><th>Edge</th>
           </tr></thead>
-          <tbody><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Los Angeles Lakers v Houston Rockets<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 206.5</td><td class='num text-green'>84.0%</td><td class='num'>1.19</td><td class='num'>1.91</td><td class='num edge-pos'>+60.3%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Atlanta Hawks v New York Knicks<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 216.5</td><td class='num text-green'>74.1%</td><td class='num'>1.35</td><td class='num'>1.91</td><td class='num edge-pos'>+41.4%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Cheltenham v Tranmere<span class='row-sub'>E3</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>58.8%</td><td class='num'>1.70</td><td class='num'>2.30</td><td class='num edge-pos'>+35.2%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Toronto Raptors v Cleveland Cavaliers<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 219.5</td><td class='num text-green'>70.0%</td><td class='num'>1.43</td><td class='num'>1.91</td><td class='num edge-pos'>+33.6%</td></tr></tbody>
+          <tbody><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Houston Rockets v Los Angeles Lakers<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 205.5</td><td class='num text-green'>84.7%</td><td class='num'>1.18</td><td class='num'>1.91</td><td class='num edge-pos'>+61.6%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Atlanta Hawks v New York Knicks<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 216.5</td><td class='num text-green'>74.1%</td><td class='num'>1.35</td><td class='num'>1.91</td><td class='num edge-pos'>+41.5%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Philadelphia 76ers v Boston Celtics<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 215.5</td><td class='num text-green'>69.8%</td><td class='num'>1.43</td><td class='num'>1.91</td><td class='num edge-pos'>+33.3%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Portland Trail Blazers v San Antonio Spurs<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 219.5</td><td class='num text-green'>70.6%</td><td class='num'>1.42</td><td class='num'>1.87</td><td class='num edge-pos'>+31.9%</td></tr></tbody>
         </table>
       </div>
     </article></div></div>
   <div id="tab-bankroll"   class="panel">
     <div class="section-head"><div><h2>Bankroll tracker</h2><div class="hint">GHS 100 -> GHS 1,000,000 goal</div></div></div>
-    
+
     <div class="bankroll-hero">
       <div class="bankroll-numbers">
         <div class="bankroll-main">
@@ -1149,7 +1345,7 @@ function logResult(betId, outcome) {
         <div class="progress-pct">Journey progress (log scale): <strong>0.000%</strong></div>
       </div>
     </div>
-    
+
     <div class="stat-grid">
       <div class="stat-card green-accent">
         <div class="stat-label">Total Staked</div>
@@ -1172,13 +1368,51 @@ function logResult(betId, outcome) {
         <div class="stat-sub">vs starting capital</div>
       </div>
     </div>
-    
-    
+
+
         <div class="section-head"><div><h2>Bet history</h2></div></div>
         <div class="empty">No bets logged yet. Run <code>python log_result.py --log --slip VALUE --stake 5 --odds 3.20</code> to log your first bet.</div></div>
+  <div id="tab-accuracy"   class="panel">
+    <div class="section-head"><div><h2>Prediction accuracy</h2><div class="hint">Completed tracked fixtures · scores joined from source data</div></div></div>
+
+    <div class="stat-grid">
+      <div class="stat-card green-accent">
+        <div class="stat-label">Main Lean</div>
+        <div class="stat-value text-green">33.3%</div>
+        <div class="stat-sub">1/3 correct</div>
+      </div>
+      <div class="stat-card blue-accent">
+        <div class="stat-label">Football 1X2</div>
+        <div class="stat-value">—</div>
+        <div class="stat-sub">0 tracked</div>
+      </div>
+      <div class="stat-card gold-accent">
+        <div class="stat-label">Basketball ML</div>
+        <div class="stat-value">33.3%</div>
+        <div class="stat-sub">1/3 correct</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Football Totals</div>
+        <div class="stat-value">—</div>
+        <div class="stat-sub">0 tracked</div>
+      </div>
+    </div>
+
+    <div class="full-table">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Date</th><th>Sport</th><th>Match</th><th>Score</th>
+            <th>Main Pick</th><th>Result</th><th>Main</th><th>Other Markets</th>
+          </tr></thead>
+          <tbody><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>basketball</span><span class='row-sub'>NBA</span></td><td class='match-col'>Los Angeles Lakers<span class='row-sub'>vs Houston Rockets</span></td><td class='num'>101-94</td><td><strong>Los Angeles Lakers ML</strong><span class='row-sub'>58.6%</span></td><td>Los Angeles Lakers ML</td><td><span class="result-ok">Correct</span></td><td>Over 206.5 <span class="result-bad">Miss</span><br>Los Angeles Lakers spread <span class="result-ok">Correct</span></td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>basketball</span><span class='row-sub'>NBA</span></td><td class='match-col'>San Antonio Spurs<span class='row-sub'>vs Portland Trail Blazers</span></td><td class='num'>103-106</td><td><strong>San Antonio Spurs ML</strong><span class='row-sub'>73.1%</span></td><td>Portland Trail Blazers ML</td><td><span class="result-bad">Miss</span></td><td>Over 219.5 <span class="result-bad">Miss</span><br>Portland Trail Blazers spread <span class="result-ok">Correct</span></td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>basketball</span><span class='row-sub'>NBA</span></td><td class='match-col'>Boston Celtics<span class='row-sub'>vs Philadelphia 76ers</span></td><td class='num'>97-111</td><td><strong>Boston Celtics ML</strong><span class='row-sub'>70.1%</span></td><td>Philadelphia 76ers ML</td><td><span class="result-bad">Miss</span></td><td>Over 216.5 <span class="result-bad">Miss</span><br>Philadelphia 76ers spread <span class="result-ok">Correct</span></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
   <div id="tab-football"   class="panel">
     <div class="section-head"><div><h2>Football predictions</h2><div class="hint">1X2 · Totals · BTTS · Top scoreline</div></div></div>
-    
+
     <div class="full-table">
       <div class="table-wrap">
         <table>
@@ -1186,14 +1420,14 @@ function logResult(betId, outcome) {
             <th>Date</th><th>League</th><th>Match</th><th>xG</th><th>Lean</th>
             <th>1X2</th><th>Over 2.5</th><th>BTTS</th><th>Top Score</th><th>Odds H/D/A</th>
           </tr></thead>
-          <tbody><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>B1</span></td><td class='match-col'>Genk<span class='row-sub'>vs Charleroi</span></td><td class='num'>1.90 – 0.92</td><td><strong>Genk</strong><span class='row-sub'>59.4%</span></td><td class='num'>59.4% / 24.0% / 16.6%</td><td class='num text-green'>53.4%</td><td class='num'>52.0%</td><td class='num'>1-1<span class='row-sub'>11.5%</span></td><td class='num'>1.83 / 3.40 / 3.90</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>B1</span></td><td class='match-col'>Oud-Heverlee Leuven<span class='row-sub'>vs Westerlo</span></td><td class='num'>1.54 – 1.28</td><td><strong>Oud-Heverlee Leuven</strong><span class='row-sub'>42.2%</span></td><td class='num'>42.2% / 27.3% / 30.5%</td><td class='num text-green'>53.4%</td><td class='num'>57.8%</td><td class='num'>1-1<span class='row-sub'>12.9%</span></td><td class='num'>2.88 / 3.50 / 2.15</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>B1</span></td><td class='match-col'>Standard<span class='row-sub'>vs Antwerp</span></td><td class='num'>1.69 – 1.12</td><td><strong>Standard</strong><span class='row-sub'>49.5%</span></td><td class='num'>49.5% / 26.4% / 24.2%</td><td class='num text-green'>53.4%</td><td class='num'>56.2%</td><td class='num'>1-1<span class='row-sub'>12.5%</span></td><td class='num'>2.60 / 3.00 / 2.60</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>E0</span></td><td class='match-col'>Brighton<span class='row-sub'>vs Chelsea</span></td><td class='num'>1.74 – 1.22</td><td><strong>Brighton</strong><span class='row-sub'>48.3%</span></td><td class='num'>48.3% / 25.8% / 25.8%</td><td class='num text-green'>56.7%</td><td class='num'>59.2%</td><td class='num'>1-1<span class='row-sub'>12.1%</span></td><td class='num'>2.50 / 3.50 / 2.70</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>E1</span></td><td class='match-col'>Coventry<span class='row-sub'>vs Portsmouth</span></td><td class='num'>1.79 – 0.73</td><td><strong>Coventry</strong><span class='row-sub'>61.6%</span></td><td class='num'>61.6% / 24.6% / 13.8%</td><td class='num text-green'>46.4%</td><td class='num'>44.5%</td><td class='num'>1-0<span class='row-sub'>13.2%</span></td><td class='num'>1.61 / 3.80 / 5.00</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>E1</span></td><td class='match-col'>Leicester<span class='row-sub'>vs Hull</span></td><td class='num'>1.32 – 1.21</td><td><strong>Leicester</strong><span class='row-sub'>38.0%</span></td><td class='num'>38.0% / 29.3% / 32.7%</td><td class='num text-green'>46.4%</td><td class='num'>52.7%</td><td class='num'>1-1<span class='row-sub'>14.0%</span></td><td class='num'>1.86 / 3.75 / 3.60</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>E1</span></td><td class='match-col'>Norwich<span class='row-sub'>vs Derby</span></td><td class='num'>1.53 – 1.00</td><td><strong>Norwich</strong><span class='row-sub'>48.4%</span></td><td class='num'>48.4% / 28.1% / 23.5%</td><td class='num text-green'>46.4%</td><td class='num'>50.7%</td><td class='num'>1-1<span class='row-sub'>13.4%</span></td><td class='num'>1.96 / 3.50 / 3.60</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>E1</span></td><td class='match-col'>Oxford<span class='row-sub'>vs Wrexham</span></td><td class='num'>1.29 – 1.24</td><td><strong>Oxford</strong><span class='row-sub'>36.5%</span></td><td class='num'>36.5% / 29.4% / 34.2%</td><td class='num text-green'>46.4%</td><td class='num'>52.8%</td><td class='num'>1-1<span class='row-sub'>14.0%</span></td><td class='num'>2.35 / 3.20 / 3.00</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>E1</span></td><td class='match-col'>QPR<span class='row-sub'>vs Swansea</span></td><td class='num'>1.49 – 1.04</td><td><strong>QPR</strong><span class='row-sub'>46.5%</span></td><td class='num'>46.5% / 28.4% / 25.0%</td><td class='num text-green'>46.4%</td><td class='num'>51.3%</td><td class='num'>1-1<span class='row-sub'>13.6%</span></td><td class='num'>2.20 / 3.25 / 3.25</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>E1</span></td><td class='match-col'>Southampton<span class='row-sub'>vs Bristol City</span></td><td class='num'>1.72 – 0.81</td><td><strong>Southampton</strong><span class='row-sub'>58.0%</span></td><td class='num'>58.0% / 25.8% / 16.2%</td><td class='num text-green'>46.4%</td><td class='num'>46.6%</td><td class='num'>1-0<span class='row-sub'>12.6%</span></td><td class='num'>1.39 / 4.33 / 8.00</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>E1</span></td><td class='match-col'>Stoke<span class='row-sub'>vs Millwall</span></td><td class='num'>1.27 – 1.26</td><td><strong>Stoke</strong><span class='row-sub'>35.5%</span></td><td class='num'>35.5% / 29.4% / 35.1%</td><td class='num text-green'>46.4%</td><td class='num'>52.8%</td><td class='num'>1-1<span class='row-sub'>14.0%</span></td><td class='num'>3.70 / 3.70 / 1.86</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>E1</span></td><td class='match-col'>West Brom<span class='row-sub'>vs Watford</span></td><td class='num'>1.56 – 0.97</td><td><strong>West Brom</strong><span class='row-sub'>50.0%</span></td><td class='num'>50.0% / 27.8% / 22.2%</td><td class='num text-green'>46.4%</td><td class='num'>50.2%</td><td class='num'>1-1<span class='row-sub'>13.2%</span></td><td class='num'>1.68 / 3.70 / 4.75</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>E2</span></td><td class='match-col'>Bradford<span class='row-sub'>vs Plymouth</span></td><td class='num'>1.50 – 1.09</td><td><strong>Bradford</strong><span class='row-sub'>45.5%</span></td><td class='num'>45.5% / 28.3% / 26.2%</td><td class='num text-green'>47.8%</td><td class='num'>52.7%</td><td class='num'>1-1<span class='row-sub'>13.5%</span></td><td class='num'>2.55 / 3.25 / 2.55</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>E2</span></td><td class='match-col'>Doncaster<span class='row-sub'>vs Lincoln</span></td><td class='num'>1.16 – 1.42</td><td><strong>Lincoln</strong><span class='row-sub'>41.7%</span></td><td class='num'>29.6% / 28.7% / 41.7%</td><td class='num text-green'>47.8%</td><td class='num'>53.4%</td><td class='num'>1-1<span class='row-sub'>13.7%</span></td><td class='num'>3.80 / 3.50 / 1.86</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>E2</span></td><td class='match-col'>Rotherham<span class='row-sub'>vs Luton</span></td><td class='num'>1.28 – 1.30</td><td><strong>Luton</strong><span class='row-sub'>35.9%</span></td><td class='num'>35.1% / 29.0% / 35.9%</td><td class='num text-green'>47.8%</td><td class='num'>53.9%</td><td class='num'>1-1<span class='row-sub'>13.9%</span></td><td class='num'>5.25 / 3.90 / 1.56</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>E2</span></td><td class='match-col'>Stevenage<span class='row-sub'>vs Barnsley</span></td><td class='num'>1.60 – 0.98</td><td><strong>Stevenage</strong><span class='row-sub'>50.8%</span></td><td class='num'>50.8% / 27.3% / 21.9%</td><td class='num text-green'>47.8%</td><td class='num'>51.1%</td><td class='num'>1-1<span class='row-sub'>13.0%</span></td><td class='num'>1.76 / 3.30 / 4.50</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>E2</span></td><td class='match-col'>Stockport<span class='row-sub'>vs Mansfield</span></td><td class='num'>1.72 – 0.86</td><td><strong>Stockport</strong><span class='row-sub'>56.6%</span></td><td class='num'>56.6% / 25.9% / 17.5%</td><td class='num text-green'>47.8%</td><td class='num'>48.6%</td><td class='num'>1-1<span class='row-sub'>12.3%</span></td><td class='num'>1.46 / 4.33 / 5.75</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>E3</span></td><td class='match-col'>Cambridge<span class='row-sub'>vs Grimsby</span></td><td class='num'>1.62 – 0.97</td><td><strong>Cambridge</strong><span class='row-sub'>51.5%</span></td><td class='num'>51.5% / 27.1% / 21.3%</td><td class='num text-green'>48.0%</td><td class='num'>51.0%</td><td class='num'>1-1<span class='row-sub'>12.9%</span></td><td class='num'>1.81 / 3.50 / 4.00</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>E3</span></td><td class='match-col'>Cheltenham<span class='row-sub'>vs Tranmere</span></td><td class='num'>1.77 – 0.82</td><td><strong>Cheltenham</strong><span class='row-sub'>58.8%</span></td><td class='num'>58.8% / 25.2% / 16.0%</td><td class='num text-green'>48.0%</td><td class='num'>47.6%</td><td class='num'>1-0<span class='row-sub'>12.1%</span></td><td class='num'>2.30 / 3.20 / 3.00</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>SP1</span></td><td class='match-col'>Ath Bilbao<span class='row-sub'>vs Osasuna</span></td><td class='num'>1.61 – 1.00</td><td><strong>Ath Bilbao</strong><span class='row-sub'>50.4%</span></td><td class='num'>50.4% / 27.2% / 22.3%</td><td class='num text-green'>48.5%</td><td class='num'>51.8%</td><td class='num'>1-1<span class='row-sub'>13.0%</span></td><td class='num'>1.80 / 3.40 / 4.50</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>SP1</span></td><td class='match-col'>Girona<span class='row-sub'>vs Betis</span></td><td class='num'>1.49 – 1.12</td><td><strong>Girona</strong><span class='row-sub'>44.5%</span></td><td class='num'>44.5% / 28.2% / 27.3%</td><td class='num text-green'>48.5%</td><td class='num'>53.5%</td><td class='num'>1-1<span class='row-sub'>13.5%</span></td><td class='num'>2.38 / 3.30 / 3.00</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>SP1</span></td><td class='match-col'>Mallorca<span class='row-sub'>vs Valencia</span></td><td class='num'>1.58 – 1.03</td><td><strong>Mallorca</strong><span class='row-sub'>49.0%</span></td><td class='num'>49.0% / 27.5% / 23.5%</td><td class='num text-green'>48.5%</td><td class='num'>52.3%</td><td class='num'>1-1<span class='row-sub'>13.1%</span></td><td class='num'>2.60 / 3.10 / 2.88</td></tr><tr><td class='num'>Tue 21 Apr</td><td><span class='sport-pill'>SP1</span></td><td class='match-col'>Real Madrid<span class='row-sub'>vs Alaves</span></td><td class='num'>2.14 – 0.47</td><td><strong>Real Madrid</strong><span class='row-sub'>75.7%</span></td><td class='num'>75.7% / 18.3% / 6.1%</td><td class='num text-green'>48.5%</td><td class='num'>33.8%</td><td class='num'>2-0<span class='row-sub'>16.8%</span></td><td class='num'>1.22 / 6.50 / 12.00</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>B1</span></td><td class='match-col'>Club Brugge<span class='row-sub'>vs Mechelen</span></td><td class='num'>2.10 – 0.72</td><td><strong>Club Brugge</strong><span class='row-sub'>68.4%</span></td><td class='num'>68.4% / 20.9% / 10.7%</td><td class='num text-green'>53.4%</td><td class='num'>45.9%</td><td class='num'>2-0<span class='row-sub'>13.2%</span></td><td class='num'>1.22 / 5.75 / 10.00</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>B1</span></td><td class='match-col'>St. Gilloise<span class='row-sub'>vs Gent</span></td><td class='num'>2.17 – 0.64</td><td><strong>St. Gilloise</strong><span class='row-sub'>71.9%</span></td><td class='num'>71.9% / 19.4% / 8.7%</td><td class='num text-green'>53.4%</td><td class='num'>42.7%</td><td class='num'>2-0<span class='row-sub'>14.2%</span></td><td class='num'>1.44 / 4.00 / 7.00</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>E0</span></td><td class='match-col'>Bournemouth<span class='row-sub'>vs Leeds</span></td><td class='num'>1.71 – 1.25</td><td><strong>Bournemouth</strong><span class='row-sub'>46.9%</span></td><td class='num'>46.9% / 26.0% / 27.0%</td><td class='num text-green'>56.7%</td><td class='num'>59.6%</td><td class='num'>1-1<span class='row-sub'>12.2%</span></td><td class='num'>2.00 / 3.50 / 3.60</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>E0</span></td><td class='match-col'>Burnley<span class='row-sub'>vs Man City</span></td><td class='num'>1.15 – 1.81</td><td><strong>Man City</strong><span class='row-sub'>51.7%</span></td><td class='num'>23.0% / 25.2% / 51.7%</td><td class='num text-green'>56.7%</td><td class='num'>58.2%</td><td class='num'>1-1<span class='row-sub'>11.9%</span></td><td class='num'>19.00 / 9.00 / 1.13</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>E1</span></td><td class='match-col'>Birmingham<span class='row-sub'>vs Preston</span></td><td class='num'>1.68 – 0.85</td><td><strong>Birmingham</strong><span class='row-sub'>55.8%</span></td><td class='num'>55.8% / 26.4% / 17.8%</td><td class='num text-green'>46.4%</td><td class='num'>47.8%</td><td class='num'>1-1<span class='row-sub'>12.5%</span></td><td class='num'>1.57 / 3.50 / 4.75</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>E1</span></td><td class='match-col'>Charlton<span class='row-sub'>vs Ipswich</span></td><td class='num'>1.31 – 1.22</td><td><strong>Charlton</strong><span class='row-sub'>37.7%</span></td><td class='num'>37.7% / 29.3% / 33.0%</td><td class='num text-green'>46.4%</td><td class='num'>52.7%</td><td class='num'>1-1<span class='row-sub'>14.0%</span></td><td class='num'>4.75 / 3.60 / 1.71</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>E1</span></td><td class='match-col'>Middlesbrough<span class='row-sub'>vs Sheffield Weds</span></td><td class='num'>2.03 – 0.50</td><td><strong>Middlesbrough</strong><span class='row-sub'>72.7%</span></td><td class='num'>72.7% / 20.0% / 7.3%</td><td class='num text-green'>46.4%</td><td class='num'>35.2%</td><td class='num'>2-0<span class='row-sub'>16.4%</span></td><td class='num'>1.15 / 6.50 / 15.00</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>E1</span></td><td class='match-col'>Sheffield United<span class='row-sub'>vs Blackburn</span></td><td class='num'>1.66 – 0.87</td><td><strong>Sheffield United</strong><span class='row-sub'>54.9%</span></td><td class='num'>54.9% / 26.6% / 18.4%</td><td class='num text-green'>46.4%</td><td class='num'>48.2%</td><td class='num'>1-1<span class='row-sub'>12.6%</span></td><td class='num'>1.71 / 3.50 / 4.75</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>E2</span></td><td class='match-col'>Cardiff<span class='row-sub'>vs Port Vale</span></td><td class='num'>1.84 – 0.74</td><td><strong>Cardiff</strong><span class='row-sub'>62.6%</span></td><td class='num'>62.6% / 24.0% / 13.4%</td><td class='num text-green'>47.8%</td><td class='num'>45.1%</td><td class='num'>1-0<span class='row-sub'>12.9%</span></td><td class='num'>1.25 / 6.25 / 7.00</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>F1</span></td><td class='match-col'>Paris SG<span class='row-sub'>vs Nantes</span></td><td class='num'>2.36 – 0.45</td><td><strong>Paris SG</strong><span class='row-sub'>79.6%</span></td><td class='num'>79.6% / 15.6% / 4.8%</td><td class='num text-green'>53.4%</td><td class='num'>33.6%</td><td class='num'>2-0<span class='row-sub'>16.7%</span></td><td class='num'>1.18 / 7.00 / 13.00</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>G1</span></td><td class='match-col'>Asteras Tripolis<span class='row-sub'>vs Panetolikos</span></td><td class='num'>1.46 – 1.11</td><td><strong>Asteras Tripolis</strong><span class='row-sub'>44.0%</span></td><td class='num'>44.0% / 28.5% / 27.5%</td><td class='num text-green'>47.4%</td><td class='num'>52.7%</td><td class='num'>1-1<span class='row-sub'>13.6%</span></td><td class='num'>2.15 / 3.10 / 3.50</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>G1</span></td><td class='match-col'>Larisa<span class='row-sub'>vs Kifisia</span></td><td class='num'>1.53 – 1.04</td><td><strong>Larisa</strong><span class='row-sub'>47.3%</span></td><td class='num'>47.3% / 28.1% / 24.6%</td><td class='num text-green'>47.4%</td><td class='num'>51.9%</td><td class='num'>1-1<span class='row-sub'>13.4%</span></td><td class='num'>2.55 / 3.20 / 2.65</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>G1</span></td><td class='match-col'>Panserraikos<span class='row-sub'>vs Atromitos</span></td><td class='num'>1.31 – 1.26</td><td><strong>Panserraikos</strong><span class='row-sub'>36.4%</span></td><td class='num'>36.4% / 29.1% / 34.5%</td><td class='num text-green'>47.4%</td><td class='num'>53.6%</td><td class='num'>1-1<span class='row-sub'>13.9%</span></td><td class='num'>2.65 / 2.85 / 2.75</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>N1</span></td><td class='match-col'>Telstar<span class='row-sub'>vs Sparta Rotterdam</span></td><td class='num'>1.78 – 1.33</td><td><strong>Telstar</strong><span class='row-sub'>47.1%</span></td><td class='num'>47.1% / 25.3% / 27.6%</td><td class='num text-green'>60.1%</td><td class='num'>62.2%</td><td class='num'>1-1<span class='row-sub'>11.6%</span></td><td class='num'>2.50 / 3.70 / 2.63</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>SP1</span></td><td class='match-col'>Barcelona<span class='row-sub'>vs Celta</span></td><td class='num'>2.15 – 0.46</td><td><strong>Barcelona</strong><span class='row-sub'>76.0%</span></td><td class='num'>76.0% / 18.1% / 5.9%</td><td class='num text-green'>48.5%</td><td class='num'>33.4%</td><td class='num'>2-0<span class='row-sub'>17.0%</span></td><td class='num'>1.22 / 6.50 / 11.00</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>SP1</span></td><td class='match-col'>Elche<span class='row-sub'>vs Ath Madrid</span></td><td class='num'>1.30 – 1.31</td><td><strong>Ath Madrid</strong><span class='row-sub'>35.7%</span></td><td class='num'>35.5% / 28.8% / 35.7%</td><td class='num text-green'>48.5%</td><td class='num'>54.4%</td><td class='num'>1-1<span class='row-sub'>13.8%</span></td><td class='num'>2.55 / 3.80 / 2.45</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>SP1</span></td><td class='match-col'>Sociedad<span class='row-sub'>vs Getafe</span></td><td class='num'>1.67 – 0.94</td><td><strong>Sociedad</strong><span class='row-sub'>53.4%</span></td><td class='num'>53.4% / 26.6% / 20.1%</td><td class='num text-green'>48.5%</td><td class='num'>50.7%</td><td class='num'>1-1<span class='row-sub'>12.7%</span></td><td class='num'>2.30 / 3.00 / 3.50</td></tr><tr><td class='num'>Thu 23 Apr</td><td><span class='sport-pill'>B1</span></td><td class='match-col'>Lommel SK<span class='row-sub'>vs RFC Liege</span></td><td class='num'>1.68 – 1.14</td><td><strong>Lommel SK</strong><span class='row-sub'>48.8%</span></td><td class='num'>48.8% / 26.5% / 24.7%</td><td class='num text-green'>53.4%</td><td class='num'>56.4%</td><td class='num'>1-1<span class='row-sub'>12.6%</span></td><td class='num'>— / — / —</td></tr><tr><td class='num'>Thu 23 Apr</td><td><span class='sport-pill'>B1</span></td><td class='match-col'>Patro Eisden<span class='row-sub'>vs Beerschot VA</span></td><td class='num'>1.85 – 0.96</td><td><strong>Patro Eisden</strong><span class='row-sub'>57.3%</span></td><td class='num'>57.3% / 24.6% / 18.1%</td><td class='num text-green'>53.4%</td><td class='num'>53.1%</td><td class='num'>1-1<span class='row-sub'>11.7%</span></td><td class='num'>— / — / —</td></tr><tr><td class='num'>Thu 23 Apr</td><td><span class='sport-pill'>B1</span></td><td class='match-col'>St Truiden<span class='row-sub'>vs Anderlecht</span></td><td class='num'>1.64 – 1.17</td><td><strong>St Truiden</strong><span class='row-sub'>47.2%</span></td><td class='num'>47.2% / 26.7% / 26.0%</td><td class='num text-green'>53.4%</td><td class='num'>56.8%</td><td class='num'>1-1<span class='row-sub'>12.7%</span></td><td class='num'>2.10 / 3.50 / 3.00</td></tr><tr><td class='num'>Thu 23 Apr</td><td><span class='sport-pill'>E3</span></td><td class='match-col'>Salford<span class='row-sub'>vs Bromley</span></td><td class='num'>1.42 – 1.18</td><td><strong>Salford</strong><span class='row-sub'>41.2%</span></td><td class='num'>41.2% / 28.7% / 30.1%</td><td class='num text-green'>48.0%</td><td class='num'>53.7%</td><td class='num'>1-1<span class='row-sub'>13.7%</span></td><td class='num'>1.81 / 3.40 / 3.80</td></tr><tr><td class='num'>Thu 23 Apr</td><td><span class='sport-pill'>N1</span></td><td class='match-col'>Go Ahead Eagles<span class='row-sub'>vs AZ Alkmaar</span></td><td class='num'>1.70 – 1.41</td><td><strong>Go Ahead Eagles</strong><span class='row-sub'>43.5%</span></td><td class='num'>43.5% / 25.7% / 30.9%</td><td class='num text-green'>60.1%</td><td class='num'>62.9%</td><td class='num'>1-1<span class='row-sub'>11.7%</span></td><td class='num'>3.00 / 3.75 / 2.20</td></tr><tr><td class='num'>Thu 23 Apr</td><td><span class='sport-pill'>N1</span></td><td class='match-col'>PSV Eindhoven<span class='row-sub'>vs Zwolle</span></td><td class='num'>2.50 – 0.61</td><td><strong>PSV Eindhoven</strong><span class='row-sub'>78.0%</span></td><td class='num'>78.0% / 15.7% / 6.3%</td><td class='num text-green'>60.1%</td><td class='num'>42.6%</td><td class='num'>2-0<span class='row-sub'>13.9%</span></td><td class='num'>1.22 / 6.50 / 12.00</td></tr><tr><td class='num'>Thu 23 Apr</td><td><span class='sport-pill'>P1</span></td><td class='match-col'>Casa Pia<span class='row-sub'>vs Sp Braga</span></td><td class='num'>1.12 – 1.54</td><td><strong>Sp Braga</strong><span class='row-sub'>45.8%</span></td><td class='num'>26.4% / 27.8% / 45.8%</td><td class='num text-green'>49.5%</td><td class='num'>54.0%</td><td class='num'>1-1<span class='row-sub'>13.3%</span></td><td class='num'>5.50 / 4.20 / 1.53</td></tr><tr><td class='num'>Thu 23 Apr</td><td><span class='sport-pill'>SP1</span></td><td class='match-col'>Levante<span class='row-sub'>vs Sevilla</span></td><td class='num'>1.70 – 0.91</td><td><strong>Levante</strong><span class='row-sub'>54.9%</span></td><td class='num'>54.9% / 26.2% / 18.9%</td><td class='num text-green'>48.5%</td><td class='num'>50.0%</td><td class='num'>1-1<span class='row-sub'>12.5%</span></td><td class='num'>2.40 / 3.25 / 3.00</td></tr><tr><td class='num'>Thu 23 Apr</td><td><span class='sport-pill'>SP1</span></td><td class='match-col'>Oviedo<span class='row-sub'>vs Villarreal</span></td><td class='num'>1.27 – 1.34</td><td><strong>Villarreal</strong><span class='row-sub'>37.4%</span></td><td class='num'>33.8% / 28.8% / 37.4%</td><td class='num text-green'>48.5%</td><td class='num'>54.4%</td><td class='num'>1-1<span class='row-sub'>13.8%</span></td><td class='num'>3.60 / 3.40 / 2.05</td></tr><tr><td class='num'>Thu 23 Apr</td><td><span class='sport-pill'>SP1</span></td><td class='match-col'>Vallecano<span class='row-sub'>vs Espanol</span></td><td class='num'>1.64 – 0.97</td><td><strong>Vallecano</strong><span class='row-sub'>52.0%</span></td><td class='num'>52.0% / 26.9% / 21.1%</td><td class='num text-green'>48.5%</td><td class='num'>51.3%</td><td class='num'>1-1<span class='row-sub'>12.8%</span></td><td class='num'>2.10 / 3.25 / 3.75</td></tr></tbody>
+          <tbody><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>B1</span></td><td class='match-col'>Club Brugge<span class='row-sub'>vs Mechelen</span></td><td class='num'>2.10 – 0.72</td><td><strong>Club Brugge</strong><span class='row-sub'>68.4%</span></td><td class='num'>68.4% / 20.9% / 10.7%</td><td class='num text-green'>53.4%</td><td class='num'>45.9%</td><td class='num'>2-0<span class='row-sub'>13.2%</span></td><td class='num'>1.22 / 5.75 / 10.00</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>B1</span></td><td class='match-col'>St. Gilloise<span class='row-sub'>vs Gent</span></td><td class='num'>2.17 – 0.64</td><td><strong>St. Gilloise</strong><span class='row-sub'>71.9%</span></td><td class='num'>71.9% / 19.4% / 8.7%</td><td class='num text-green'>53.4%</td><td class='num'>42.7%</td><td class='num'>2-0<span class='row-sub'>14.2%</span></td><td class='num'>1.44 / 4.00 / 7.00</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>E0</span></td><td class='match-col'>Bournemouth<span class='row-sub'>vs Leeds</span></td><td class='num'>1.71 – 1.25</td><td><strong>Bournemouth</strong><span class='row-sub'>46.9%</span></td><td class='num'>46.9% / 26.0% / 27.0%</td><td class='num text-green'>56.7%</td><td class='num'>59.6%</td><td class='num'>1-1<span class='row-sub'>12.2%</span></td><td class='num'>2.00 / 3.50 / 3.60</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>E0</span></td><td class='match-col'>Burnley<span class='row-sub'>vs Man City</span></td><td class='num'>1.15 – 1.81</td><td><strong>Man City</strong><span class='row-sub'>51.7%</span></td><td class='num'>23.0% / 25.2% / 51.7%</td><td class='num text-green'>56.7%</td><td class='num'>58.2%</td><td class='num'>1-1<span class='row-sub'>11.9%</span></td><td class='num'>19.00 / 9.00 / 1.13</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>E1</span></td><td class='match-col'>Birmingham<span class='row-sub'>vs Preston</span></td><td class='num'>1.68 – 0.85</td><td><strong>Birmingham</strong><span class='row-sub'>55.8%</span></td><td class='num'>55.8% / 26.4% / 17.8%</td><td class='num text-green'>46.4%</td><td class='num'>47.8%</td><td class='num'>1-1<span class='row-sub'>12.5%</span></td><td class='num'>1.57 / 3.50 / 4.75</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>E1</span></td><td class='match-col'>Charlton<span class='row-sub'>vs Ipswich</span></td><td class='num'>1.31 – 1.22</td><td><strong>Charlton</strong><span class='row-sub'>37.7%</span></td><td class='num'>37.7% / 29.3% / 33.0%</td><td class='num text-green'>46.4%</td><td class='num'>52.7%</td><td class='num'>1-1<span class='row-sub'>14.0%</span></td><td class='num'>4.75 / 3.60 / 1.71</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>E1</span></td><td class='match-col'>Middlesbrough<span class='row-sub'>vs Sheffield Weds</span></td><td class='num'>2.03 – 0.50</td><td><strong>Middlesbrough</strong><span class='row-sub'>72.7%</span></td><td class='num'>72.7% / 20.0% / 7.3%</td><td class='num text-green'>46.4%</td><td class='num'>35.2%</td><td class='num'>2-0<span class='row-sub'>16.4%</span></td><td class='num'>1.15 / 6.50 / 15.00</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>E1</span></td><td class='match-col'>Sheffield United<span class='row-sub'>vs Blackburn</span></td><td class='num'>1.66 – 0.87</td><td><strong>Sheffield United</strong><span class='row-sub'>54.9%</span></td><td class='num'>54.9% / 26.6% / 18.4%</td><td class='num text-green'>46.4%</td><td class='num'>48.2%</td><td class='num'>1-1<span class='row-sub'>12.6%</span></td><td class='num'>1.71 / 3.50 / 4.75</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>E2</span></td><td class='match-col'>Cardiff<span class='row-sub'>vs Port Vale</span></td><td class='num'>1.84 – 0.74</td><td><strong>Cardiff</strong><span class='row-sub'>62.6%</span></td><td class='num'>62.6% / 24.0% / 13.4%</td><td class='num text-green'>47.8%</td><td class='num'>45.1%</td><td class='num'>1-0<span class='row-sub'>12.9%</span></td><td class='num'>1.25 / 6.25 / 7.00</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>F1</span></td><td class='match-col'>Paris SG<span class='row-sub'>vs Nantes</span></td><td class='num'>2.36 – 0.45</td><td><strong>Paris SG</strong><span class='row-sub'>79.6%</span></td><td class='num'>79.6% / 15.6% / 4.8%</td><td class='num text-green'>53.4%</td><td class='num'>33.6%</td><td class='num'>2-0<span class='row-sub'>16.7%</span></td><td class='num'>1.18 / 7.00 / 13.00</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>G1</span></td><td class='match-col'>Asteras Tripolis<span class='row-sub'>vs Panetolikos</span></td><td class='num'>1.46 – 1.11</td><td><strong>Asteras Tripolis</strong><span class='row-sub'>44.0%</span></td><td class='num'>44.0% / 28.5% / 27.5%</td><td class='num text-green'>47.4%</td><td class='num'>52.7%</td><td class='num'>1-1<span class='row-sub'>13.6%</span></td><td class='num'>2.15 / 3.10 / 3.50</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>G1</span></td><td class='match-col'>Larisa<span class='row-sub'>vs Kifisia</span></td><td class='num'>1.53 – 1.04</td><td><strong>Larisa</strong><span class='row-sub'>47.3%</span></td><td class='num'>47.3% / 28.1% / 24.6%</td><td class='num text-green'>47.4%</td><td class='num'>51.9%</td><td class='num'>1-1<span class='row-sub'>13.4%</span></td><td class='num'>2.55 / 3.20 / 2.65</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>G1</span></td><td class='match-col'>Panserraikos<span class='row-sub'>vs Atromitos</span></td><td class='num'>1.31 – 1.26</td><td><strong>Panserraikos</strong><span class='row-sub'>36.4%</span></td><td class='num'>36.4% / 29.1% / 34.5%</td><td class='num text-green'>47.4%</td><td class='num'>53.6%</td><td class='num'>1-1<span class='row-sub'>13.9%</span></td><td class='num'>2.65 / 2.85 / 2.75</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>N1</span></td><td class='match-col'>Telstar<span class='row-sub'>vs Sparta Rotterdam</span></td><td class='num'>1.78 – 1.33</td><td><strong>Telstar</strong><span class='row-sub'>47.1%</span></td><td class='num'>47.1% / 25.3% / 27.6%</td><td class='num text-green'>60.1%</td><td class='num'>62.2%</td><td class='num'>1-1<span class='row-sub'>11.6%</span></td><td class='num'>2.50 / 3.70 / 2.63</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>SP1</span></td><td class='match-col'>Barcelona<span class='row-sub'>vs Celta</span></td><td class='num'>2.15 – 0.46</td><td><strong>Barcelona</strong><span class='row-sub'>76.0%</span></td><td class='num'>76.0% / 18.1% / 5.9%</td><td class='num text-green'>48.5%</td><td class='num'>33.4%</td><td class='num'>2-0<span class='row-sub'>17.0%</span></td><td class='num'>1.22 / 6.50 / 11.00</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>SP1</span></td><td class='match-col'>Elche<span class='row-sub'>vs Ath Madrid</span></td><td class='num'>1.30 – 1.31</td><td><strong>Ath Madrid</strong><span class='row-sub'>35.7%</span></td><td class='num'>35.5% / 28.8% / 35.7%</td><td class='num text-green'>48.5%</td><td class='num'>54.4%</td><td class='num'>1-1<span class='row-sub'>13.8%</span></td><td class='num'>2.55 / 3.80 / 2.45</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>SP1</span></td><td class='match-col'>Sociedad<span class='row-sub'>vs Getafe</span></td><td class='num'>1.67 – 0.94</td><td><strong>Sociedad</strong><span class='row-sub'>53.4%</span></td><td class='num'>53.4% / 26.6% / 20.1%</td><td class='num text-green'>48.5%</td><td class='num'>50.7%</td><td class='num'>1-1<span class='row-sub'>12.7%</span></td><td class='num'>2.30 / 3.00 / 3.50</td></tr><tr><td class='num'>Thu 23 Apr</td><td><span class='sport-pill'>B1</span></td><td class='match-col'>Lommel SK<span class='row-sub'>vs RFC Liege</span></td><td class='num'>1.68 – 1.14</td><td><strong>Lommel SK</strong><span class='row-sub'>48.8%</span></td><td class='num'>48.8% / 26.5% / 24.7%</td><td class='num text-green'>53.4%</td><td class='num'>56.4%</td><td class='num'>1-1<span class='row-sub'>12.6%</span></td><td class='num'>— / — / —</td></tr><tr><td class='num'>Thu 23 Apr</td><td><span class='sport-pill'>B1</span></td><td class='match-col'>Patro Eisden<span class='row-sub'>vs Beerschot VA</span></td><td class='num'>1.85 – 0.96</td><td><strong>Patro Eisden</strong><span class='row-sub'>57.3%</span></td><td class='num'>57.3% / 24.6% / 18.1%</td><td class='num text-green'>53.4%</td><td class='num'>53.1%</td><td class='num'>1-1<span class='row-sub'>11.7%</span></td><td class='num'>— / — / —</td></tr><tr><td class='num'>Thu 23 Apr</td><td><span class='sport-pill'>B1</span></td><td class='match-col'>St Truiden<span class='row-sub'>vs Anderlecht</span></td><td class='num'>1.64 – 1.17</td><td><strong>St Truiden</strong><span class='row-sub'>47.2%</span></td><td class='num'>47.2% / 26.7% / 26.0%</td><td class='num text-green'>53.4%</td><td class='num'>56.8%</td><td class='num'>1-1<span class='row-sub'>12.7%</span></td><td class='num'>2.10 / 3.50 / 3.00</td></tr><tr><td class='num'>Thu 23 Apr</td><td><span class='sport-pill'>E3</span></td><td class='match-col'>Salford<span class='row-sub'>vs Bromley</span></td><td class='num'>1.42 – 1.18</td><td><strong>Salford</strong><span class='row-sub'>41.2%</span></td><td class='num'>41.2% / 28.7% / 30.1%</td><td class='num text-green'>48.0%</td><td class='num'>53.7%</td><td class='num'>1-1<span class='row-sub'>13.7%</span></td><td class='num'>1.81 / 3.40 / 3.80</td></tr><tr><td class='num'>Thu 23 Apr</td><td><span class='sport-pill'>N1</span></td><td class='match-col'>Go Ahead Eagles<span class='row-sub'>vs AZ Alkmaar</span></td><td class='num'>1.70 – 1.41</td><td><strong>Go Ahead Eagles</strong><span class='row-sub'>43.5%</span></td><td class='num'>43.5% / 25.7% / 30.9%</td><td class='num text-green'>60.1%</td><td class='num'>62.9%</td><td class='num'>1-1<span class='row-sub'>11.7%</span></td><td class='num'>3.00 / 3.75 / 2.20</td></tr><tr><td class='num'>Thu 23 Apr</td><td><span class='sport-pill'>N1</span></td><td class='match-col'>PSV Eindhoven<span class='row-sub'>vs Zwolle</span></td><td class='num'>2.50 – 0.61</td><td><strong>PSV Eindhoven</strong><span class='row-sub'>78.0%</span></td><td class='num'>78.0% / 15.7% / 6.3%</td><td class='num text-green'>60.1%</td><td class='num'>42.6%</td><td class='num'>2-0<span class='row-sub'>13.9%</span></td><td class='num'>1.22 / 6.50 / 12.00</td></tr><tr><td class='num'>Thu 23 Apr</td><td><span class='sport-pill'>P1</span></td><td class='match-col'>Casa Pia<span class='row-sub'>vs Sp Braga</span></td><td class='num'>1.12 – 1.54</td><td><strong>Sp Braga</strong><span class='row-sub'>45.8%</span></td><td class='num'>26.4% / 27.8% / 45.8%</td><td class='num text-green'>49.5%</td><td class='num'>54.0%</td><td class='num'>1-1<span class='row-sub'>13.3%</span></td><td class='num'>5.50 / 4.20 / 1.53</td></tr><tr><td class='num'>Thu 23 Apr</td><td><span class='sport-pill'>SP1</span></td><td class='match-col'>Levante<span class='row-sub'>vs Sevilla</span></td><td class='num'>1.70 – 0.91</td><td><strong>Levante</strong><span class='row-sub'>54.9%</span></td><td class='num'>54.9% / 26.2% / 18.9%</td><td class='num text-green'>48.5%</td><td class='num'>50.0%</td><td class='num'>1-1<span class='row-sub'>12.5%</span></td><td class='num'>2.40 / 3.25 / 3.00</td></tr><tr><td class='num'>Thu 23 Apr</td><td><span class='sport-pill'>SP1</span></td><td class='match-col'>Oviedo<span class='row-sub'>vs Villarreal</span></td><td class='num'>1.27 – 1.34</td><td><strong>Villarreal</strong><span class='row-sub'>37.4%</span></td><td class='num'>33.8% / 28.8% / 37.4%</td><td class='num text-green'>48.5%</td><td class='num'>54.4%</td><td class='num'>1-1<span class='row-sub'>13.8%</span></td><td class='num'>3.60 / 3.40 / 2.05</td></tr><tr><td class='num'>Thu 23 Apr</td><td><span class='sport-pill'>SP1</span></td><td class='match-col'>Vallecano<span class='row-sub'>vs Espanol</span></td><td class='num'>1.64 – 0.97</td><td><strong>Vallecano</strong><span class='row-sub'>52.0%</span></td><td class='num'>52.0% / 26.9% / 21.1%</td><td class='num text-green'>48.5%</td><td class='num'>51.3%</td><td class='num'>1-1<span class='row-sub'>12.8%</span></td><td class='num'>2.10 / 3.25 / 3.75</td></tr></tbody>
         </table>
       </div>
     </div>
   </div>
   <div id="tab-basketball" class="panel">
     <div class="section-head"><div><h2>NBA &amp; EuroLeague</h2><div class="hint">Moneyline · projected score · spread · total</div></div></div>
-    
+
     <div class="full-table">
       <div class="table-wrap">
         <table>
@@ -1201,11 +1435,43 @@ function logResult(betId, outcome) {
             <th>Date</th><th>League</th><th>Match</th><th>Projection</th>
             <th>Lean</th><th>H / A</th><th>Spread</th><th>Total</th>
           </tr></thead>
-          <tbody><tr><td class='num'>Tue 21 Apr 20:00</td><td><span class='sport-pill'>EuroLeague</span></td><td class='match-col'>PANATHINAIKOS AKTOR ATHENS<span class='row-sub'>vs AS MONACO</span></td><td class='num'>88.8 – 86.6</td><td><strong>PANATHINAIKOS AKTOR ATHENS</strong><span class='row-sub'>57.0%</span></td><td class='num'>57.0% / 43.0%</td><td class='num'>—</td><td class='num'>—</td></tr><tr><td class='num'>Tue 21 Apr 20:45</td><td><span class='sport-pill'>EuroLeague</span></td><td class='match-col'>FC BARCELONA<span class='row-sub'>vs CRVENA ZVEZDA MERIDIANBET BELGRADE</span></td><td class='num'>86.1 – 84.1</td><td><strong>FC BARCELONA</strong><span class='row-sub'>56.6%</span></td><td class='num'>56.6% / 43.4%</td><td class='num'>—</td><td class='num'>—</td></tr><tr><td class='num'>Tue 21 Apr 23:00</td><td><span class='sport-pill'>NBA</span></td><td class='match-col'>Boston Celtics<span class='row-sub'>vs Philadelphia 76ers</span></td><td class='num'>117.8 – 109.1</td><td><strong>Boston Celtics</strong><span class='row-sub'>70.1%</span></td><td class='num'>70.1% / 29.9%</td><td class='num'>-14.5 (36.1%)</td><td class='num'>216.5 · over 68.5%</td></tr><tr><td class='num'>Wed 22 Apr</td><td><span class='sport-pill'>NBA</span></td><td class='match-col'>San Antonio Spurs<span class='row-sub'>vs Portland Trail Blazers</span></td><td class='num'>120.8 – 110.7</td><td><strong>San Antonio Spurs</strong><span class='row-sub'>73.1%</span></td><td class='num'>73.1% / 26.9%</td><td class='num'>-11.5 (46.7%)</td><td class='num'>219.5 · over 71.0%</td></tr><tr><td class='num'>Wed 22 Apr 02:30</td><td><span class='sport-pill'>NBA</span></td><td class='match-col'>Los Angeles Lakers<span class='row-sub'>vs Houston Rockets</span></td><td class='num'>115.8 – 112.2</td><td><strong>Los Angeles Lakers</strong><span class='row-sub'>58.6%</span></td><td class='num'>58.6% / 41.4%</td><td class='num'>+4.5 (68.8%)</td><td class='num'>206.5 · over 84.0%</td></tr><tr><td class='num'>Wed 22 Apr 23:00</td><td><span class='sport-pill'>NBA</span></td><td class='match-col'>Detroit Pistons<span class='row-sub'>vs Orlando Magic</span></td><td class='num'>117.6 – 111.5</td><td><strong>Detroit Pistons</strong><span class='row-sub'>64.5%</span></td><td class='num'>64.5% / 35.5%</td><td class='num'>-9.5 (41.8%)</td><td class='num'>218.5 · over 68.6%</td></tr><tr><td class='num'>Thu 23 Apr 01:30</td><td><span class='sport-pill'>NBA</span></td><td class='match-col'>Oklahoma City Thunder<span class='row-sub'>vs Phoenix Suns</span></td><td class='num'>117.7 – 107.7</td><td><strong>Oklahoma City Thunder</strong><span class='row-sub'>72.8%</span></td><td class='num'>72.8% / 27.2%</td><td class='num'>-17.5 (32.3%)</td><td class='num'>214.5 · over 69.2%</td></tr><tr><td class='num'>Thu 23 Apr 23:00</td><td><span class='sport-pill'>NBA</span></td><td class='match-col'>Atlanta Hawks<span class='row-sub'>vs New York Knicks</span></td><td class='num'>115.7 – 114.8</td><td><strong>Atlanta Hawks</strong><span class='row-sub'>52.4%</span></td><td class='num'>52.4% / 47.6%</td><td class='num'>-1.5 (48.7%)</td><td class='num'>216.5 · over 74.1%</td></tr><tr><td class='num'>Fri 24 Apr</td><td><span class='sport-pill'>NBA</span></td><td class='match-col'>Toronto Raptors<span class='row-sub'>vs Cleveland Cavaliers</span></td><td class='num'>114.7 – 116.1</td><td><strong>Cleveland Cavaliers</strong><span class='row-sub'>53.5%</span></td><td class='num'>46.5% / 53.5%</td><td class='num'>+3.5 (55.0%)</td><td class='num'>219.5 · over 70.0%</td></tr><tr><td class='num'>Fri 24 Apr 01:30</td><td><span class='sport-pill'>NBA</span></td><td class='match-col'>Minnesota Timberwolves<span class='row-sub'>vs Denver Nuggets</span></td><td class='num'>117.6 – 118.4</td><td><strong>Denver Nuggets</strong><span class='row-sub'>51.9%</span></td><td class='num'>48.1% / 51.9%</td><td class='num'>+1.5 (51.7%)</td><td class='num'>233.5 · over 54.6%</td></tr><tr><td class='num'>Fri 24 Apr 23:00</td><td><span class='sport-pill'>NBA</span></td><td class='match-col'>Philadelphia 76ers<span class='row-sub'>vs Boston Celtics</span></td><td class='num'>111.6 – 115.3</td><td><strong>Boston Celtics</strong><span class='row-sub'>58.9%</span></td><td class='num'>41.1% / 58.9%</td><td class='num'>—</td><td class='num'>—</td></tr></tbody>
+          <tbody><tr><td class='num'>Wed 22 Apr 23:00</td><td><span class='sport-pill'>NBA</span></td><td class='match-col'>Detroit Pistons<span class='row-sub'>vs Orlando Magic</span></td><td class='num'>117.6 – 111.5</td><td><strong>Detroit Pistons</strong><span class='row-sub'>64.5%</span></td><td class='num'>64.5% / 35.5%</td><td class='num'>-8.5 (44.2%)</td><td class='num'>218.5 · over 68.7%</td></tr><tr><td class='num'>Thu 23 Apr 01:30</td><td><span class='sport-pill'>NBA</span></td><td class='match-col'>Oklahoma City Thunder<span class='row-sub'>vs Phoenix Suns</span></td><td class='num'>117.5 – 107.6</td><td><strong>Oklahoma City Thunder</strong><span class='row-sub'>72.8%</span></td><td class='num'>72.8% / 27.2%</td><td class='num'>-17.5 (32.3%)</td><td class='num'>215.5 · over 67.1%</td></tr><tr><td class='num'>Thu 23 Apr 23:00</td><td><span class='sport-pill'>NBA</span></td><td class='match-col'>Atlanta Hawks<span class='row-sub'>vs New York Knicks</span></td><td class='num'>115.7 – 114.8</td><td><strong>Atlanta Hawks</strong><span class='row-sub'>52.4%</span></td><td class='num'>52.4% / 47.6%</td><td class='num'>-1.5 (48.7%)</td><td class='num'>216.5 · over 74.1%</td></tr><tr><td class='num'>Fri 24 Apr</td><td><span class='sport-pill'>NBA</span></td><td class='match-col'>Toronto Raptors<span class='row-sub'>vs Cleveland Cavaliers</span></td><td class='num'>114.7 – 116.1</td><td><strong>Cleveland Cavaliers</strong><span class='row-sub'>53.5%</span></td><td class='num'>46.5% / 53.5%</td><td class='num'>+3.5 (55.0%)</td><td class='num'>219.5 · over 70.0%</td></tr><tr><td class='num'>Fri 24 Apr 01:30</td><td><span class='sport-pill'>NBA</span></td><td class='match-col'>Minnesota Timberwolves<span class='row-sub'>vs Denver Nuggets</span></td><td class='num'>117.5 – 118.3</td><td><strong>Denver Nuggets</strong><span class='row-sub'>52.0%</span></td><td class='num'>48.0% / 52.0%</td><td class='num'>+1.5 (51.7%)</td><td class='num'>233.5 · over 54.3%</td></tr><tr><td class='num'>Fri 24 Apr 23:00</td><td><span class='sport-pill'>NBA</span></td><td class='match-col'>Philadelphia 76ers<span class='row-sub'>vs Boston Celtics</span></td><td class='num'>112.3 – 114.5</td><td><strong>Boston Celtics</strong><span class='row-sub'>55.2%</span></td><td class='num'>44.8% / 55.2%</td><td class='num'>+7.5 (62.8%)</td><td class='num'>215.5 · over 69.8%</td></tr><tr><td class='num'>Sat 25 Apr</td><td><span class='sport-pill'>NBA</span></td><td class='match-col'>Houston Rockets<span class='row-sub'>vs Los Angeles Lakers</span></td><td class='num'>114.2 – 113.4</td><td><strong>Houston Rockets</strong><span class='row-sub'>52.0%</span></td><td class='num'>52.0% / 48.0%</td><td class='num'>-9.5 (29.9%)</td><td class='num'>205.5 · over 84.7%</td></tr><tr><td class='num'>Sat 25 Apr 02:30</td><td><span class='sport-pill'>NBA</span></td><td class='match-col'>Portland Trail Blazers<span class='row-sub'>vs San Antonio Spurs</span></td><td class='num'>113.6 – 117.6</td><td><strong>San Antonio Spurs</strong><span class='row-sub'>59.5%</span></td><td class='num'>40.5% / 59.5%</td><td class='num'>+1.5 (44.1%)</td><td class='num'>219.5 · over 70.6%</td></tr><tr><td class='num'>Sat 25 Apr 17:00</td><td><span class='sport-pill'>NBA</span></td><td class='match-col'>Orlando Magic<span class='row-sub'>vs Detroit Pistons</span></td><td class='num'>114.0 – 115.1</td><td><strong>Detroit Pistons</strong><span class='row-sub'>52.7%</span></td><td class='num'>47.3% / 52.7%</td><td class='num'>—</td><td class='num'>—</td></tr><tr><td class='num'>Sat 25 Apr 19:30</td><td><span class='sport-pill'>NBA</span></td><td class='match-col'>Phoenix Suns<span class='row-sub'>vs Oklahoma City Thunder</span></td><td class='num'>110.1 – 115.0</td><td><strong>Oklahoma City Thunder</strong><span class='row-sub'>61.8%</span></td><td class='num'>38.2% / 61.8%</td><td class='num'>—</td><td class='num'>—</td></tr><tr><td class='num'>Sat 25 Apr 22:00</td><td><span class='sport-pill'>NBA</span></td><td class='match-col'>Atlanta Hawks<span class='row-sub'>vs New York Knicks</span></td><td class='num'>115.7 – 114.8</td><td><strong>Atlanta Hawks</strong><span class='row-sub'>52.4%</span></td><td class='num'>52.4% / 47.6%</td><td class='num'>—</td><td class='num'>—</td></tr></tbody>
         </table>
       </div>
     </div>
   </div>
+  <div id="tab-community" class="panel">
+    <div class="section-head">
+      <div><h2>Community codes</h2><div class="hint">Browser-local board · 24h TTL</div></div>
+    </div>
+    <form class="code-form" id="community-form">
+      <div class="code-form-grid">
+        <div class="field">
+          <label for="community-code">Code</label>
+          <input id="community-code" name="code" autocomplete="off" maxlength="80" required>
+        </div>
+        <div class="field">
+          <label for="community-odds">Odds</label>
+          <input id="community-odds" name="odds" autocomplete="off" maxlength="20">
+        </div>
+        <div class="field">
+          <label for="community-note">Note</label>
+          <input id="community-note" name="note" autocomplete="off" maxlength="120">
+        </div>
+        <button class="submit-btn" type="submit">Add Code</button>
+      </div>
+      <div class="status-line" id="community-status"></div>
+    </form>
+    <div class="full-table">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Added</th><th>Code</th><th>Odds</th><th>Note</th></tr></thead>
+          <tbody id="community-code-rows"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="empty" id="community-empty">No active codes yet.</div>
+    </div>
 
   <footer>
     PredictorPro — football Elo + Dixon-Coles Poisson · basketball Elo + normal model

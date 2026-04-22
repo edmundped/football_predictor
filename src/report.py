@@ -6,6 +6,7 @@ Bankroll dashboard, Kelly staking, result-logging UI.
 from __future__ import annotations
 
 import html
+import json
 import math
 from datetime import datetime
 
@@ -369,7 +370,13 @@ body {
 }
 .slip-card.value-card { border-color: rgba(168,85,247,0.4); box-shadow: 0 0 20px rgba(168,85,247,0.08); }
 .slip-card.safe-card  { border-color: rgba(16,185,129,0.3); }
-.slip-card.banker-card { border-color: rgba(245,158,11,0.42); box-shadow: 0 0 22px rgba(245,158,11,0.08); }
+.slip-card.dream-card {
+  grid-column: 1 / -1;
+  border-color: rgba(245,158,11,0.45);
+  box-shadow: 0 0 24px rgba(245,158,11,0.08);
+}
+.slip-card.dream-card .table-wrap { max-height: 440px; }
+.slip-card.dream-card .slip-name { white-space: normal; line-height: 1.15; }
 
 .slip-header {
   padding: 14px 16px;
@@ -390,7 +397,7 @@ body {
 .badge-balanced { background: var(--blue-dim);  color: var(--blue);  border: 1px solid rgba(59,130,246,0.3); }
 .badge-aggressive { background: var(--red-dim); color: var(--red);   border: 1px solid rgba(239,68,68,0.3); }
 .badge-value    { background: var(--purple-dim); color: var(--purple); border: 1px solid rgba(168,85,247,0.3); }
-.badge-banker   { background: rgba(245,158,11,0.1); color: var(--gold); border: 1px solid rgba(245,158,11,0.3); }
+.badge-dream    { background: rgba(245,158,11,0.1); color: var(--gold); border: 1px solid rgba(245,158,11,0.3); }
 .badge-win      { background: var(--green-dim); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
 .badge-loss     { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(239,68,68,0.3); }
 .badge-pending  { background: rgba(245,158,11,0.1); color: var(--gold); border: 1px solid rgba(245,158,11,0.3); }
@@ -518,6 +525,59 @@ td.match-col { min-width: 180px; font-weight: 700; }
 }
 .edge-pos { color: var(--green); font-weight: 700; }
 .edge-neg { color: var(--muted); }
+.result-ok { color: var(--green); font-weight: 800; }
+.result-bad { color: var(--red); font-weight: 800; }
+.result-na { color: var(--muted); font-weight: 700; }
+
+/* ── COMMUNITY CODES ── */
+.code-form {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.code-form-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(120px, .6fr) minmax(160px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+.field label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+.field input {
+  width: 100%;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  color: var(--text);
+  font: inherit;
+  min-height: 38px;
+  padding: 8px 10px;
+}
+.field input:focus { outline: 1px solid rgba(16,185,129,0.5); border-color: rgba(16,185,129,0.45); }
+.submit-btn {
+  appearance: none;
+  background: var(--green);
+  border: 1px solid var(--green);
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  min-height: 38px;
+  padding: 8px 14px;
+  white-space: nowrap;
+}
+.status-line { color: var(--muted); font-size: 0.78rem; margin-top: 10px; }
 
 /* ── BET LOG TABLE ── */
 .bet-log-table th { background: #0c1118; }
@@ -615,6 +675,9 @@ footer {
   .bankroll-numbers { gap: 14px; }
   .bankroll-main .amount { font-size: 2rem; }
 }
+@media (max-width: 760px) {
+  .code-form-grid { grid-template-columns: 1fr; }
+}
 </style>
 """
 
@@ -647,12 +710,129 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2400);
 }
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+  }[ch]));
+}
+
 function logResult(betId, outcome) {
   const cmd = `python log_result.py --id ${betId} --outcome ${outcome}`;
   navigator.clipboard.writeText(cmd).then(() => {
     showToast(`Command copied — paste in your terminal (${outcome})`);
   });
 }
+
+function communitySettings() {
+  return window.PREDICTOR_COMMUNITY || { endpoint: '', ttl_hours: 24 };
+}
+
+function communityTtlMs() {
+  const cfg = communitySettings();
+  const hours = Number(cfg.ttl_hours || 24);
+  return Math.max(1, hours) * 60 * 60 * 1000;
+}
+
+function freshCodes(codes) {
+  const cutoff = Date.now() - communityTtlMs();
+  return (codes || []).filter(c => {
+    const t = new Date(c.created_at || 0).getTime();
+    return Number.isFinite(t) && t >= cutoff;
+  }).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+}
+
+function localCodes() {
+  try {
+    return freshCodes(JSON.parse(localStorage.getItem('predictorpro.community.codes') || '[]'));
+  } catch (_) {
+    return [];
+  }
+}
+
+function saveLocalCodes(codes) {
+  localStorage.setItem('predictorpro.community.codes', JSON.stringify(freshCodes(codes)));
+}
+
+function renderCommunityRows(codes) {
+  const tbody = document.getElementById('community-code-rows');
+  const empty = document.getElementById('community-empty');
+  if (!tbody || !empty) return;
+  const rows = freshCodes(codes);
+  empty.style.display = rows.length ? 'none' : 'block';
+  tbody.innerHTML = rows.map(c => {
+    const when = new Date(c.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return `<tr>
+      <td class="num">${escapeHtml(when)}</td>
+      <td style="font-weight:800">${escapeHtml(c.code)}</td>
+      <td class="num">${escapeHtml(c.odds || '')}</td>
+      <td>${escapeHtml(c.note || '')}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function loadCommunityCodes() {
+  const cfg = communitySettings();
+  const status = document.getElementById('community-status');
+  if (!document.getElementById('community-code-rows')) return;
+  if (!cfg.endpoint) {
+    const codes = localCodes();
+    renderCommunityRows(codes);
+    if (status) status.textContent = 'Browser-local board · expires after 24 hours';
+    return;
+  }
+  try {
+    const res = await fetch(cfg.endpoint, { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const payload = await res.json();
+    renderCommunityRows(payload.codes || payload || []);
+    if (status) status.textContent = 'Community board · expires after 24 hours';
+  } catch (_) {
+    renderCommunityRows(localCodes());
+    if (status) status.textContent = 'Community endpoint unavailable · showing browser-local codes';
+  }
+}
+
+async function submitCommunityCode(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const code = form.elements.code.value.trim();
+  if (!code) return;
+  const item = {
+    code,
+    odds: form.elements.odds.value.trim(),
+    note: form.elements.note.value.trim(),
+    created_at: new Date().toISOString()
+  };
+  const cfg = communitySettings();
+  if (cfg.endpoint) {
+    try {
+      const res = await fetch(cfg.endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(item)
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      showToast('Code submitted');
+      form.reset();
+      loadCommunityCodes();
+      return;
+    } catch (_) {
+      showToast('Endpoint unavailable; saved locally');
+    }
+  } else {
+    showToast('Code saved locally');
+  }
+  const codes = [item, ...localCodes()];
+  saveLocalCodes(codes);
+  renderCommunityRows(codes);
+  form.reset();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('community-form');
+  if (form) form.addEventListener('submit', submitCommunityCode);
+  loadCommunityCodes();
+});
 </script>
 """
 
@@ -747,17 +927,17 @@ def _slip_badge(variant: str) -> str:
         "SAFE": "badge-safe",
         "BALANCED": "badge-balanced",
         "AGGRESSIVE": "badge-aggressive",
-        "BANKER_100": "badge-banker",
+        "ONE_CEDI_DREAM": "badge-dream",
         "VALUE": "badge-value",
     }.get(variant, "badge-balanced")
     label = {
-        "BANKER_100": "100X",
+        "ONE_CEDI_DREAM": "1 CEDI",
     }.get(variant, variant)
     return f'<span class="badge {css}">{html.escape(label)}</span>'
 
 def _slip_title(variant: str) -> str:
     return {
-        "BANKER_100": "100 Odds Banker",
+        "ONE_CEDI_DREAM": "1 Cedi and a Small Dream",
     }.get(variant, f"{variant} slip")
 
 def _outcome_badge(outcome) -> str:
@@ -914,6 +1094,7 @@ def _render_slip_card(variant: str, slip: dict, kelly_info: dict) -> str:
     payout  = kelly_info.get("potential_payout", 0)
     edge    = kelly_info.get("edge", 0)
     capped  = kelly_info.get("capped", False)
+    stake_label = kelly_info.get("stake_label", "Kelly Stake")
 
     stake_str  = _money(stake) if stake > 0 else "—"
     payout_str = _money(payout) if payout > 0 else "—"
@@ -937,7 +1118,7 @@ def _render_slip_card(variant: str, slip: dict, kelly_info: dict) -> str:
         kelly_html = f"""
         <div class="kelly-banner">
           <div class="kelly-left">
-            <div class="kl">Kelly Stake{capped_note}</div>
+            <div class="kl">{html.escape(stake_label)}{capped_note}</div>
             <div class="ks">{stake_str}</div>
           </div>
           <div class="kelly-right">
@@ -980,8 +1161,8 @@ def _render_slip_card(variant: str, slip: dict, kelly_info: dict) -> str:
         card_extra = " value-card"
     elif variant == "SAFE":
         card_extra = " safe-card"
-    elif variant == "BANKER_100":
-        card_extra = " banker-card"
+    elif variant == "ONE_CEDI_DREAM":
+        card_extra = " dream-card"
 
     return f"""
     <article class="slip-card{card_extra}">
@@ -1281,6 +1462,144 @@ def _render_basketball(df: pd.DataFrame) -> str:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Accuracy / community tabs
+# ──────────────────────────────────────────────────────────────────────────────
+
+def _metric_text(metric: dict) -> tuple[str, str]:
+    total = int(metric.get("total") or 0)
+    correct = int(metric.get("correct") or 0)
+    accuracy = metric.get("accuracy")
+    if not total or accuracy is None:
+        return "—", "0 tracked"
+    return f"{accuracy:.1f}%", f"{correct}/{total} correct"
+
+def _result_cell(value) -> str:
+    if value is None or (not isinstance(value, bool) and pd.isna(value)):
+        return '<span class="result-na">—</span>'
+    if bool(value):
+        return '<span class="result-ok">Correct</span>'
+    return '<span class="result-bad">Miss</span>'
+
+def _render_accuracy(accuracy: dict | None) -> str:
+    if not accuracy:
+        return "<div class='empty'>No accuracy data yet. Run the predictor after tracked fixtures have final scores.</div>"
+    summary = accuracy.get("summary", {})
+    rows = accuracy.get("rows", [])
+
+    main_v, main_sub = _metric_text(summary.get("main", {}))
+    football_v, football_sub = _metric_text(summary.get("football_main", {}))
+    basketball_v, basketball_sub = _metric_text(summary.get("basketball_main", {}))
+    totals_v, totals_sub = _metric_text(summary.get("football_totals", {}))
+
+    stats = f"""
+    <div class="stat-grid">
+      <div class="stat-card green-accent">
+        <div class="stat-label">Main Lean</div>
+        <div class="stat-value text-green">{main_v}</div>
+        <div class="stat-sub">{main_sub}</div>
+      </div>
+      <div class="stat-card blue-accent">
+        <div class="stat-label">Football 1X2</div>
+        <div class="stat-value">{football_v}</div>
+        <div class="stat-sub">{football_sub}</div>
+      </div>
+      <div class="stat-card gold-accent">
+        <div class="stat-label">Basketball ML</div>
+        <div class="stat-value">{basketball_v}</div>
+        <div class="stat-sub">{basketball_sub}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Football Totals</div>
+        <div class="stat-value">{totals_v}</div>
+        <div class="stat-sub">{totals_sub}</div>
+      </div>
+    </div>
+    """
+
+    if not rows:
+        return stats + "<div class='empty'>No completed tracked fixtures yet.</div>"
+
+    html_rows = []
+    for r in rows:
+        date_s = _date_label(r.get("date"))
+        total_result = r.get("total_correct")
+        side_prob = r.get("main_prob")
+        side_prob_s = _pct(side_prob) if side_prob is not None else "—"
+        extras = []
+        if r.get("total_pick"):
+            extras.append(f"{_esc(r.get('total_pick'))} {_result_cell(total_result)}")
+        if r.get("btts_pick"):
+            extras.append(f"{_esc(r.get('btts_pick'))} {_result_cell(r.get('btts_correct'))}")
+        if r.get("spread_pick"):
+            extras.append(f"{_esc(r.get('spread_pick'))} {_result_cell(r.get('spread_correct'))}")
+        if r.get("scoreline_pick"):
+            extras.append(f"Score {_esc(r.get('scoreline_pick'))} {_result_cell(r.get('scoreline_correct'))}")
+        extra_html = "<br>".join(extras) if extras else "—"
+        html_rows.append(
+            "<tr>"
+            f"<td class='num'>{html.escape(date_s)}</td>"
+            f"<td><span class='sport-pill'>{_esc(r.get('sport'))}</span><span class='row-sub'>{_esc(r.get('league'))}</span></td>"
+            f"<td class='match-col'>{_esc(r.get('home'))}<span class='row-sub'>vs {_esc(r.get('away'))}</span></td>"
+            f"<td class='num'>{_esc(r.get('score'))}</td>"
+            f"<td><strong>{_esc(r.get('main_pick'))}</strong><span class='row-sub'>{side_prob_s}</span></td>"
+            f"<td>{_esc(r.get('main_result'))}</td>"
+            f"<td>{_result_cell(r.get('main_correct'))}</td>"
+            f"<td>{extra_html}</td>"
+            "</tr>"
+        )
+
+    return stats + f"""
+    <div class="full-table">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Date</th><th>Sport</th><th>Match</th><th>Score</th>
+            <th>Main Pick</th><th>Result</th><th>Main</th><th>Other Markets</th>
+          </tr></thead>
+          <tbody>{"".join(html_rows)}</tbody>
+        </table>
+      </div>
+    </div>"""
+
+
+def _render_community(community: dict | None) -> str:
+    ttl = int((community or {}).get("ttl_hours") or 24)
+    scope = "Community board" if (community or {}).get("endpoint") else "Browser-local board"
+    return f"""
+    <div class="section-head">
+      <div><h2>Community codes</h2><div class="hint">{html.escape(scope)} · {ttl}h TTL</div></div>
+    </div>
+    <form class="code-form" id="community-form">
+      <div class="code-form-grid">
+        <div class="field">
+          <label for="community-code">Code</label>
+          <input id="community-code" name="code" autocomplete="off" maxlength="80" required>
+        </div>
+        <div class="field">
+          <label for="community-odds">Odds</label>
+          <input id="community-odds" name="odds" autocomplete="off" maxlength="20">
+        </div>
+        <div class="field">
+          <label for="community-note">Note</label>
+          <input id="community-note" name="note" autocomplete="off" maxlength="120">
+        </div>
+        <button class="submit-btn" type="submit">Add Code</button>
+      </div>
+      <div class="status-line" id="community-status"></div>
+    </form>
+    <div class="full-table">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Added</th><th>Code</th><th>Odds</th><th>Note</th></tr></thead>
+          <tbody id="community-code-rows"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="empty" id="community-empty">No active codes yet.</div>
+    """
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Main render
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -1291,6 +1610,8 @@ def render(
     run_ts: datetime,
     bankroll: dict | None = None,
     kelly: dict | None = None,
+    accuracy: dict | None = None,
+    community: dict | None = None,
 ) -> str:
     if bankroll is None:
         bankroll = {"starting_capital": 100.0, "current_balance": 100.0, "bets": [],
@@ -1300,18 +1621,35 @@ def render(
                     "balance_change_pct": 0}
     if kelly is None:
         kelly = {}
+    if community is None:
+        community = {}
 
     date_range  = _date_range(football, basketball)
     total_fx    = len(football) + len(basketball)
     balance     = bankroll.get("current_balance", 100.0)
     pending_n   = bankroll.get("pending_bets", 0)
+    community_enabled = bool(community.get("enabled", True))
+    community_cfg = {
+        "endpoint": community.get("endpoint") or "",
+        "ttl_hours": int(community.get("ttl_hours") or 24),
+    }
+    community_tab_button = ""
+    community_panel = ""
+    if community_enabled:
+        community_tab_button = (
+            '<button class="nav-tab" data-tab="tab-community" aria-selected="false" '
+            'onclick="showTab(\'tab-community\')" type="button">'
+            '<span class="tab-icon">🧾</span>Community Codes</button>'
+        )
+        community_panel = f'<div id="tab-community" class="panel">{_render_community(community)}</div>'
 
-    return f"""<!DOCTYPE html>
+    page = f"""<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>PredictorPro — {date_range}</title>
 {CSS}
+<script>window.PREDICTOR_COMMUNITY = {json.dumps(community_cfg)};</script>
 {JS}
 </head>
 <body>
@@ -1349,13 +1687,19 @@ def render(
     <button class="nav-tab" data-tab="tab-overview"   aria-selected="true"  onclick="showTab('tab-overview')"   type="button"><span class="tab-icon">📊</span>Overview</button>
     <button class="nav-tab" data-tab="tab-slips"      aria-selected="false" onclick="showTab('tab-slips')"      type="button"><span class="tab-icon">🎯</span>Slips &amp; Stakes</button>
     <button class="nav-tab" data-tab="tab-bankroll"   aria-selected="false" onclick="showTab('tab-bankroll')"   type="button"><span class="tab-icon">💰</span>Bankroll{f' <span class="badge badge-pending" style="margin-left:4px">{pending_n}</span>' if pending_n else ''}</button>
+    <button class="nav-tab" data-tab="tab-accuracy"   aria-selected="false" onclick="showTab('tab-accuracy')"   type="button"><span class="tab-icon">✅</span>Accuracy</button>
     <button class="nav-tab" data-tab="tab-football"   aria-selected="false" onclick="showTab('tab-football')"   type="button"><span class="tab-icon">⚽</span>Football</button>
     <button class="nav-tab" data-tab="tab-basketball" aria-selected="false" onclick="showTab('tab-basketball')" type="button"><span class="tab-icon">🏀</span>Basketball</button>
+    {community_tab_button}
   </nav>
 
   <div id="tab-overview"   class="panel active">{_render_overview(football, basketball, slips, bankroll, kelly)}</div>
   <div id="tab-slips"      class="panel">{_render_slips(slips, kelly)}</div>
   <div id="tab-bankroll"   class="panel">{_render_bankroll(bankroll)}</div>
+  <div id="tab-accuracy"   class="panel">
+    <div class="section-head"><div><h2>Prediction accuracy</h2><div class="hint">Completed tracked fixtures · scores joined from source data</div></div></div>
+    {_render_accuracy(accuracy)}
+  </div>
   <div id="tab-football"   class="panel">
     <div class="section-head"><div><h2>Football predictions</h2><div class="hint">1X2 · Totals · BTTS · Top scoreline</div></div></div>
     {_render_football(football)}
@@ -1364,6 +1708,7 @@ def render(
     <div class="section-head"><div><h2>NBA &amp; EuroLeague</h2><div class="hint">Moneyline · projected score · spread · total</div></div></div>
     {_render_basketball(basketball)}
   </div>
+  {community_panel}
 
   <footer>
     PredictorPro — football Elo + Dixon-Coles Poisson · basketball Elo + normal model
@@ -1374,3 +1719,4 @@ def render(
 
 <div class="toast" id="toast"></div>
 </body></html>"""
+    return "\n".join(line.rstrip() for line in page.splitlines()) + "\n"

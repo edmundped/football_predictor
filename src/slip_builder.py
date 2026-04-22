@@ -6,7 +6,7 @@ Given a per-fixture prediction table, build five slip variants:
   1. SAFE         — fewer legs, each with very high probability.
   2. BALANCED     — middle risk.
   3. AGGRESSIVE   — longer accumulator, more picks, lower combined prob but higher payout.
-  4. BANKER_100   — priced picks from the consolidated pool targeting 100+ market odds.
+  4. ONE_CEDI_DREAM — priced picks from the consolidated pool targeting 100+ market odds.
   5. VALUE        — picks where model probability most exceeds market implied probability.
                     Requires bookmaker odds to be present in the fixtures CSV.
 
@@ -315,7 +315,7 @@ def build_slips(predictions: pd.DataFrame, slip_cfg: dict) -> dict:
             max_legs=int(slip_cfg.get("banker_100_max_legs", 20)),
         )
         if not legs.empty:
-            out["BANKER_100"] = {"legs": legs, "stats": _slip_stats(legs)}
+            out["ONE_CEDI_DREAM"] = {"legs": legs, "stats": _slip_stats(legs)}
 
     # VALUE slip — needs market odds
     if pool["market_odds"].notna().any():

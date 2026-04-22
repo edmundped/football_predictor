@@ -94,6 +94,14 @@ slip:
   banker_100_max_legs: 20
   value_min_edge: 0.05    # required (model_prob / market_implied - 1)
 
+# Optional shared code board. GitHub Pages cannot store public submissions by
+# itself, so leave endpoint empty for a browser-local 24h board or point it at a
+# small CORS-enabled API later.
+community:
+  enabled: true
+  ttl_hours: 24
+  endpoint:
+
 # Paths (relative to project root)
 paths:
   data_dir: data

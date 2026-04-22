@@ -27,6 +27,7 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
 from src import (  # noqa: E402
+    accuracy,
     basketball_fetcher,
     basketball_model,
     fetcher,
@@ -113,6 +114,7 @@ def main() -> int:
     predictions = model.predict_fixtures(window, state, cfg["goals"])
 
     basketball_predictions = pd.DataFrame()
+    basketball_history = pd.DataFrame()
     if cfg.get("basketball", {}).get("enabled", False):
         log.info("fetching basketball data (leagues=%s)", cfg["basketball"].get("leagues", []))
         basketball_history, basketball_upcoming = basketball_fetcher.fetch_all(cfg, data_dir, now=run_ts)
@@ -152,6 +154,15 @@ def main() -> int:
         sort=False,
     ) if prediction_frames else pd.DataFrame()
 
+    accuracy_info = accuracy.update(
+        store_path=data_dir / "prediction_history.csv",
+        previous_predictions_path=out_dir / "predictions.csv",
+        current_predictions=all_predictions,
+        run_ts=run_ts,
+        football_history=history,
+        basketball_history=basketball_history,
+    )
+
     log.info("building consolidated slip variants")
     slips = slip_builder.build_slips(all_predictions, cfg["slip"])
 
@@ -162,12 +173,24 @@ def main() -> int:
     kelly_stakes: dict[str, dict] = {}
     for name, slip in slips.items():
         s = slip["stats"]
-        ki = staking.slip_kelly(
-            combined_prob        = s["combined_prob"],
-            combined_market_odds = s.get("combined_market_odds"),
-            combined_fair_odds   = s["combined_fair_odds"],
-            bankroll             = balance,
-        )
+        if name == "ONE_CEDI_DREAM" and s.get("combined_market_odds"):
+            stake = min(1.0, balance)
+            ki = {
+                "edge": s.get("expected_value_per_unit") or 0.0,
+                "kelly_f": 0.0,
+                "recommended_stake": stake,
+                "capped": False,
+                "expected_profit": stake * (s.get("expected_value_per_unit") or 0.0),
+                "potential_payout": stake * s["combined_market_odds"],
+                "stake_label": "Dream Stake",
+            }
+        else:
+            ki = staking.slip_kelly(
+                combined_prob        = s["combined_prob"],
+                combined_market_odds = s.get("combined_market_odds"),
+                combined_fair_odds   = s["combined_fair_odds"],
+                bankroll             = balance,
+            )
         kelly_stakes[name] = ki
 
     # write stable artifacts, overwriting the prior run
@@ -180,6 +203,8 @@ def main() -> int:
             run_ts,
             bankroll = bankroll_summary,
             kelly    = kelly_stakes,
+            accuracy = accuracy_info,
+            community= cfg.get("community", {}),
         ),
         encoding="utf-8",
     )
@@ -199,8 +224,13 @@ def main() -> int:
             ev = f"  EV={s['expected_value_per_unit']:+.3f}" if s["expected_value_per_unit"] is not None else ""
             market = f"  market_odds={s['combined_market_odds']:6.2f}" if s.get("combined_market_odds") else ""
             stake_str = f"  stake=GHS {ki['recommended_stake']:,.2f}" if ki.get("recommended_stake") else ""
-            print(f"  {name:11s} legs={s['legs']}  P={s['combined_prob']*100:5.2f}%  "
+            print(f"  {name:16s} legs={s['legs']}  P={s['combined_prob']*100:5.2f}%  "
                   f"fair_odds={s['combined_fair_odds']:6.2f}{market}{ev}{stake_str}")
+
+    acc = accuracy_info.get("summary", {}).get("main", {})
+    if acc.get("total"):
+        print(f"\nPrediction accuracy: {acc['correct']}/{acc['total']} "
+              f"({acc['accuracy']:.1f}%) on completed tracked fixtures")
 
     print(f"\nBankroll: GHS {balance:,.2f}  "
           f"(bets: {bankroll_summary['total_bets']}  pending: {bankroll_summary['pending_bets']})")
