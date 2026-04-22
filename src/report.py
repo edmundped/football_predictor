@@ -1,5 +1,5 @@
 """
-Premium dark-themed HTML report — sports-betting site aesthetic.
+Light sports-site HTML report.
 Bankroll dashboard, Kelly staking, result-logging UI.
 """
 
@@ -662,6 +662,266 @@ footer {
   z-index: 99;
 }
 .toast.show { opacity: 1; transform: translateY(0); }
+
+/* ── LIGHT SPORTS DESK THEME ── */
+:root {
+  --bg:        #ffffff;
+  --bg2:       #f3f5f7;
+  --card:      #ffffff;
+  --card2:     #f8fafc;
+  --border:    #e5e7eb;
+  --border2:   #d1d5db;
+  --text:      #111827;
+  --muted:     #6b7280;
+  --muted2:    #4b5563;
+  --green:     #007a3d;
+  --green-dim: #e7f6ee;
+  --red:       #c1121f;
+  --red-dim:   #fde8ea;
+  --gold:      #b7791f;
+  --gold-dim:  #fff5dc;
+  --blue:      #1d4ed8;
+  --blue-dim:  #e8f0ff;
+  --purple:    #6d28d9;
+  --purple-dim:#f0e9ff;
+  --accent:    #007a3d;
+  --glow:      none;
+}
+
+body {
+  background: #ffffff;
+  color: var(--text);
+}
+
+.header {
+  background: #ffffff;
+  border-bottom: 1px solid var(--border);
+  overflow: visible;
+}
+.header::before,
+.bankroll-hero::before {
+  display: none;
+}
+.header-inner {
+  padding: 18px 24px 16px;
+}
+.header-top {
+  margin-bottom: 14px;
+}
+.brand-icon {
+  background: #111827;
+  border-radius: 4px;
+  box-shadow: none;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+.brand-name {
+  color: var(--text);
+}
+.brand-sub {
+  color: var(--muted2);
+}
+.live-badge {
+  background: #fff5f5;
+  border-color: #fecaca;
+  border-radius: 4px;
+  color: #b91c1c;
+}
+.header-title {
+  color: var(--text);
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  letter-spacing: -0.02em;
+}
+.header-sub {
+  color: var(--muted2);
+}
+.pill {
+  background: #f8fafc;
+  border-color: var(--border);
+  color: var(--muted2);
+}
+.pill strong {
+  color: var(--text);
+}
+.pill.green {
+  background: var(--green-dim);
+  border-color: #b7e1c7;
+  color: var(--green);
+}
+
+.ticker-strip {
+  background: #111827;
+  border-top: 1px solid #111827;
+}
+.ticker-item {
+  border-right: 1px solid rgba(255,255,255,0.14);
+  color: #e5e7eb;
+}
+.ticker-item .teams {
+  color: #ffffff;
+}
+.ticker-item .league {
+  color: #9ca3af;
+}
+.ticker-item .odds {
+  color: #34d399;
+}
+
+.nav-tabs {
+  background: #ffffff;
+  border-bottom-color: var(--border);
+  padding-top: 4px;
+}
+.nav-tab {
+  border-bottom-width: 3px;
+  color: var(--muted2);
+  font-weight: 800;
+  padding: 11px 15px 13px;
+}
+.nav-tab[aria-selected="true"] {
+  color: var(--green);
+}
+.tab-icon {
+  display: none;
+}
+
+.section-head h2 {
+  color: var(--text);
+}
+
+.stat-card,
+.match-card,
+.slip-card,
+.code-form,
+.pending-card,
+.empty {
+  background: #ffffff;
+  border-color: var(--border);
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+}
+.stat-card::after {
+  height: 3px;
+}
+.bankroll-hero {
+  background: #f8fafc;
+  border-color: var(--border);
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+}
+.bankroll-main .amount {
+  color: var(--green);
+}
+.progress-track {
+  background: #e5e7eb;
+}
+.progress-fill {
+  background: #007a3d;
+  box-shadow: none;
+}
+
+.league-tag {
+  background: #f3f4f6;
+  color: #374151;
+}
+.match-lean {
+  border-top-color: var(--border);
+}
+.lean-prob {
+  color: var(--green);
+}
+
+.slip-card.value-card,
+.slip-card.safe-card,
+.slip-card.dream-card {
+  box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+}
+.slip-card.safe-card {
+  border-left: 4px solid var(--green);
+}
+.slip-card.value-card {
+  border-left: 4px solid var(--purple);
+}
+.slip-card.dream-card {
+  background: #fffbeb;
+  border-color: #f3d27a;
+  border-left: 4px solid var(--gold);
+}
+.slip-header {
+  background: var(--card2);
+  border-bottom-color: var(--border);
+}
+.slip-card.dream-card .slip-header,
+.slip-card.dream-card .slip-stat-cell {
+  background: #fff8d7;
+}
+.slip-stats-row {
+  background: var(--border);
+}
+.slip-stat-cell {
+  background: #ffffff;
+}
+.badge {
+  border-radius: 4px;
+}
+
+.kelly-banner {
+  background: #ecfdf5;
+  border-color: #b7e1c7;
+}
+.copy-cmd {
+  background: #f9fafb;
+  border-color: var(--border);
+}
+.copy-btn {
+  background: #ffffff;
+  border-color: var(--border2);
+  color: #374151;
+}
+.copy-btn:hover {
+  background: var(--green);
+  border-color: var(--green);
+  color: #ffffff;
+}
+
+th,
+.bet-log-table th {
+  background: #f3f4f6;
+  border-bottom-color: var(--border2);
+  color: #374151;
+}
+td {
+  border-bottom-color: #edf0f3;
+}
+tbody tr:hover td {
+  background: #f9fafb;
+}
+.sport-pill {
+  background: var(--blue-dim);
+  border-color: #c7d7fe;
+}
+.market-pill {
+  background: var(--gold-dim);
+  border-color: #f5d78f;
+}
+
+.field input {
+  background: #ffffff;
+}
+.pending-head {
+  background: #fffbeb;
+}
+.log-cmd-btn.win,
+.log-cmd-btn.loss,
+.log-cmd-btn.void {
+  background: #ffffff;
+}
+footer {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
 
 /* ── RESPONSIVE ── */
 @media (max-width: 960px) {
@@ -1658,18 +1918,18 @@ def render(
   <div class="header-inner">
     <div class="header-top">
       <div class="brand">
-        <div class="brand-icon">⚽</div>
+        <div class="brand-icon">PP</div>
         <div>
           <div class="brand-name">PredictorPro</div>
-          <div class="brand-sub">AI-Powered Sports Intelligence</div>
+          <div class="brand-sub">Sports predictions desk</div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:10px">
         <div class="live-badge"><div class="live-dot"></div>Live</div>
       </div>
     </div>
-    <div class="header-title">Daily Betting Board</div>
-    <div class="header-sub">Model-driven predictions · Kelly staking · Real-time P&L tracking</div>
+    <div class="header-title">Today's Betting Board</div>
+    <div class="header-sub">Fixtures, odds, score checks, bankroll, and community codes</div>
     <div class="pills-row">
       <span class="pill">Run <strong>{run_ts.strftime('%d %b %Y %H:%M')}</strong></span>
       <span class="pill">Window <strong>{html.escape(date_range)}</strong></span>
