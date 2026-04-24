@@ -6,9 +6,10 @@ using independent Poissons with lambdas from the Elo model, then apply the
 Dixon-Coles low-score correction that improves 0-0 / 1-1 / 1-0 / 0-1 cells.
 
 From the joint matrix we derive:
-  - 1X2 (home/draw/away)
-  - Over/Under 2.5
-  - BTTS (both teams to score)
+  - 1X2 (home/draw/away) and double chance
+  - Over/Under 0.5, 1.5, 2.5, 3.5
+  - BTTS and clean-sheet markets
+  - Team goal markets
   - Top scorelines
   - Expected goals (already know the input lambdas)
 """
@@ -59,7 +60,7 @@ def scoreline_matrix(lam_home: float, lam_away: float, rho: float) -> np.ndarray
 
 
 def derive_markets(mat: np.ndarray) -> dict[str, float]:
-    """Pull 1X2, O/U 2.5, BTTS from the scoreline matrix."""
+    """Pull betting markets from the scoreline matrix."""
     n = mat.shape[0]
     idx_h, idx_a = np.indices(mat.shape)
 
@@ -68,20 +69,51 @@ def derive_markets(mat: np.ndarray) -> dict[str, float]:
     p_away = float(mat[idx_h < idx_a].sum())
 
     total_goals = idx_h + idx_a
+    p_over05 = float(mat[total_goals > 0.5].sum())
+    p_under05 = float(mat[total_goals < 0.5].sum())
+    p_over15 = float(mat[total_goals > 1.5].sum())
+    p_under15 = float(mat[total_goals < 1.5].sum())
     p_over25 = float(mat[total_goals > 2.5].sum())
     p_under25 = float(mat[total_goals < 2.5].sum())
+    p_over35 = float(mat[total_goals > 3.5].sum())
+    p_under35 = float(mat[total_goals < 3.5].sum())
 
     p_btts = float(mat[(idx_h > 0) & (idx_a > 0)].sum())
     p_btts_no = 1.0 - p_btts
+    p_home_over05 = float(mat[idx_h > 0].sum())
+    p_away_over05 = float(mat[idx_a > 0].sum())
+    p_home_over15 = float(mat[idx_h > 1].sum())
+    p_away_over15 = float(mat[idx_a > 1].sum())
+    p_home_clean_sheet = float(mat[idx_a == 0].sum())
+    p_away_clean_sheet = float(mat[idx_h == 0].sum())
+
+    ranked_1x2 = sorted([p_home, p_draw, p_away], reverse=True)
+    confidence_gap = ranked_1x2[0] - ranked_1x2[1]
 
     return {
         "p_home": p_home,
         "p_draw": p_draw,
         "p_away": p_away,
+        "p_home_or_draw": p_home + p_draw,
+        "p_away_or_draw": p_away + p_draw,
+        "p_home_or_away": p_home + p_away,
+        "p_over05": p_over05,
+        "p_under05": p_under05,
+        "p_over15": p_over15,
+        "p_under15": p_under15,
         "p_over25": p_over25,
         "p_under25": p_under25,
+        "p_over35": p_over35,
+        "p_under35": p_under35,
         "p_btts": p_btts,
         "p_btts_no": p_btts_no,
+        "p_home_over05": p_home_over05,
+        "p_away_over05": p_away_over05,
+        "p_home_over15": p_home_over15,
+        "p_away_over15": p_away_over15,
+        "p_home_clean_sheet": p_home_clean_sheet,
+        "p_away_clean_sheet": p_away_clean_sheet,
+        "confidence_gap": confidence_gap,
     }
 
 
@@ -127,6 +159,14 @@ def predict_fixtures(
         )
         pred = predict_match(lam_h, lam_a, rho)
         top1, top2, top3 = (pred["top_scores"] + [("", 0.0)] * 3)[:3]
+        lean_label, lean_prob = max(
+            [
+                ("Home win", pred["p_home"]),
+                ("Draw", pred["p_draw"]),
+                ("Away win", pred["p_away"]),
+            ],
+            key=lambda item: item[1],
+        )
         rows.append({
             "fixture_id": f"football_{row.league}_{row.home}_{row.away}_{pd.to_datetime(row.date).date() if pd.notna(row.date) else ''}",
             "date": getattr(row, "date", None),
@@ -136,13 +176,31 @@ def predict_fixtures(
             "away": row.away,
             "lambda_home": round(pred["lambda_home"], 3),
             "lambda_away": round(pred["lambda_away"], 3),
+            "model_lean": lean_label,
+            "model_prob": lean_prob,
+            "confidence_gap": pred["confidence_gap"],
             "p_home": pred["p_home"],
             "p_draw": pred["p_draw"],
             "p_away": pred["p_away"],
+            "p_home_or_draw": pred["p_home_or_draw"],
+            "p_away_or_draw": pred["p_away_or_draw"],
+            "p_home_or_away": pred["p_home_or_away"],
+            "p_over05": pred["p_over05"],
+            "p_under05": pred["p_under05"],
+            "p_over15": pred["p_over15"],
+            "p_under15": pred["p_under15"],
             "p_over25": pred["p_over25"],
             "p_under25": pred["p_under25"],
+            "p_over35": pred["p_over35"],
+            "p_under35": pred["p_under35"],
             "p_btts": pred["p_btts"],
             "p_btts_no": pred["p_btts_no"],
+            "p_home_over05": pred["p_home_over05"],
+            "p_away_over05": pred["p_away_over05"],
+            "p_home_over15": pred["p_home_over15"],
+            "p_away_over15": pred["p_away_over15"],
+            "p_home_clean_sheet": pred["p_home_clean_sheet"],
+            "p_away_clean_sheet": pred["p_away_clean_sheet"],
             "top1_score": top1[0], "top1_prob": top1[1],
             "top2_score": top2[0], "top2_prob": top2[1],
             "top3_score": top3[0], "top3_prob": top3[1],

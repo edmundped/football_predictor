@@ -27,15 +27,26 @@ class RatingState:
     league_home_goals: dict[str, float] = field(default_factory=dict)
     league_away_goals: dict[str, float] = field(default_factory=dict)
     league_home_adv_goals: dict[str, float] = field(default_factory=dict)
+    team_attack: dict[str, float] = field(default_factory=dict)
+    team_defense: dict[str, float] = field(default_factory=dict)
     k: float = 20.0
     home_adv: float = 65.0
     goal_diff_weight: float = 1.0
+
+    def key(self, league: str, team: str) -> str:
+        return f"{league}::{team}"
 
     def get(self, team: str) -> float:
         return self.ratings.get(team, DEFAULT_RATING)
 
     def set(self, team: str, rating: float) -> None:
         self.ratings[team] = rating
+
+    def attack(self, league: str, team: str) -> float:
+        return self.team_attack.get(self.key(league, team), 0.0)
+
+    def defense(self, league: str, team: str) -> float:
+        return self.team_defense.get(self.key(league, team), 0.0)
 
 
 def _expected_score(rating_home: float, rating_away: float, home_adv: float) -> float:
@@ -84,6 +95,33 @@ def fit(history: pd.DataFrame, elo_cfg: dict) -> RatingState:
         state.league_home_goals[league] = float(row["home_goals"])
         state.league_away_goals[league] = float(row["away_goals"])
         state.league_home_adv_goals[league] = float(row["home_goals"] - row["away_goals"])
+
+    team_rows = []
+    for row in history.itertuples(index=False):
+        team_rows.append({
+            "league": row.league,
+            "team": row.home,
+            "scored": float(row.home_goals),
+            "allowed": float(row.away_goals),
+        })
+        team_rows.append({
+            "league": row.league,
+            "team": row.away,
+            "scored": float(row.away_goals),
+            "allowed": float(row.home_goals),
+        })
+
+    team_df = pd.DataFrame(team_rows)
+    if not team_df.empty:
+        for (league, team), row in team_df.groupby(["league", "team"]).mean(numeric_only=True).iterrows():
+            league_avg_team = (
+                state.league_home_goals.get(league, 1.50)
+                + state.league_away_goals.get(league, 1.15)
+            ) / 2.0
+            key = state.key(league, team)
+            state.team_attack[key] = float(row["scored"] - league_avg_team)
+            # Positive defense means this team suppresses opponent scoring.
+            state.team_defense[key] = float(league_avg_team - row["allowed"])
 
     # walk through matches in order
     for row in history.itertuples(index=False):
@@ -144,8 +182,17 @@ def expected_goals_for_match(
     gap = ((rh + state.home_adv) - ra) / 100.0
     shift = 0.18 * gap
 
-    lambda_home = max(0.15, lg_home + shift)
-    lambda_away = max(0.15, lg_away - shift)
+    attack_home = state.attack(league, home)
+    attack_away = state.attack(league, away)
+    defense_home = state.defense(league, home)
+    defense_away = state.defense(league, away)
+
+    # Blend market-agnostic strength (Elo) with observed scoring profile.
+    # Defense is signed so stronger defense lowers the opponent's lambda.
+    lambda_home = lg_home + shift + 0.28 * attack_home - 0.22 * defense_away
+    lambda_away = lg_away - shift + 0.28 * attack_away - 0.22 * defense_home
+    lambda_home = min(4.5, max(0.15, lambda_home))
+    lambda_away = min(4.5, max(0.15, lambda_away))
     return lambda_home, lambda_away
 
 

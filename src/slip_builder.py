@@ -1,13 +1,14 @@
 """
 Daily slip (accumulator) variant generator.
 
-Given a per-fixture prediction table, build five slip variants:
+Given a per-fixture prediction table, build slip variants:
 
   1. SAFE         — fewer legs, each with very high probability.
   2. BALANCED     — middle risk.
   3. AGGRESSIVE   — longer accumulator, more picks, lower combined prob but higher payout.
   4. ONE_CEDI_DREAM — priced picks from the consolidated pool targeting 100+ market odds.
-  5. VALUE        — picks where model probability most exceeds market implied probability.
+  5. HUNDRED_K_*  — diversified priced accumulators targeting a 100,000 GHS payout.
+  6. VALUE        — picks where model probability most exceeds market implied probability.
                     Requires bookmaker odds to be present in the fixtures CSV.
 
 Rules:
@@ -47,6 +48,15 @@ def _football_market_candidates(row: pd.Series) -> list[dict]:
 
     cands = []
 
+    def add(market: str, pick: str, prob, odds=None) -> None:
+        if pd.isna(prob):
+            return
+        cands.append({
+            "fixture_id": fid, "sport": "football", "match": match_label, "league": row["league"],
+            "market": market, "pick": pick, "prob": float(prob),
+            "market_odds": float(odds) if pd.notna(odds) else None,
+        })
+
     # 1X2: pick the side with highest prob
     prices_1x2 = [
         ("Home win", row["p_home"], row.get("odds_home")),
@@ -54,33 +64,44 @@ def _football_market_candidates(row: pd.Series) -> list[dict]:
         ("Away win", row["p_away"], row.get("odds_away")),
     ]
     label, prob, odds = max(prices_1x2, key=lambda x: x[1])
-    cands.append({
-        "fixture_id": fid, "sport": "football", "match": match_label, "league": row["league"],
-        "market": "1X2", "pick": label, "prob": float(prob),
-        "market_odds": float(odds) if pd.notna(odds) else None,
-    })
+    add("1X2", label, prob, odds)
 
-    # Over / Under 2.5
-    if row["p_over25"] >= row["p_under25"]:
-        ou_label, ou_prob, ou_odds = "Over 2.5", row["p_over25"], row.get("odds_over25")
-    else:
-        ou_label, ou_prob, ou_odds = "Under 2.5", row["p_under25"], row.get("odds_under25")
-    cands.append({
-        "fixture_id": fid, "sport": "football", "match": match_label, "league": row["league"],
-        "market": "Totals", "pick": ou_label, "prob": float(ou_prob),
-        "market_odds": float(ou_odds) if pd.notna(ou_odds) else None,
-    })
+    double_chance = [
+        ("Home or Draw", row.get("p_home_or_draw")),
+        ("Away or Draw", row.get("p_away_or_draw")),
+        ("Home or Away", row.get("p_home_or_away")),
+    ]
+    label, prob = max(double_chance, key=lambda x: x[1] if pd.notna(x[1]) else -1)
+    add("Double Chance", label, prob)
+
+    for line in ("05", "15", "25", "35"):
+        over = row.get(f"p_over{line}")
+        under = row.get(f"p_under{line}")
+        display = f"{int(line[0])}.{line[1]}"
+        over_odds = row.get("odds_over25") if line == "25" else None
+        under_odds = row.get("odds_under25") if line == "25" else None
+        if pd.notna(over) and pd.notna(under):
+            if over >= under:
+                add("Totals", f"Over {display}", over, over_odds)
+            else:
+                add("Totals", f"Under {display}", under, under_odds)
 
     # BTTS — no market odds in the free CSV feed, but still useful
     if row["p_btts"] >= row["p_btts_no"]:
         btts_label, btts_prob = "BTTS: Yes", row["p_btts"]
     else:
         btts_label, btts_prob = "BTTS: No", row["p_btts_no"]
-    cands.append({
-        "fixture_id": fid, "sport": "football", "match": match_label, "league": row["league"],
-        "market": "BTTS", "pick": btts_label, "prob": float(btts_prob),
-        "market_odds": None,
-    })
+    add("BTTS", btts_label, btts_prob)
+
+    for market, pick, prob in [
+        ("Team Goals", f"{row['home']} over 0.5", row.get("p_home_over05")),
+        ("Team Goals", f"{row['away']} over 0.5", row.get("p_away_over05")),
+        ("Team Goals", f"{row['home']} over 1.5", row.get("p_home_over15")),
+        ("Team Goals", f"{row['away']} over 1.5", row.get("p_away_over15")),
+        ("Clean Sheet", f"{row['home']} clean sheet", row.get("p_home_clean_sheet")),
+        ("Clean Sheet", f"{row['away']} clean sheet", row.get("p_away_clean_sheet")),
+    ]:
+        add(market, pick, prob)
 
     return cands
 
@@ -90,16 +111,30 @@ def _basketball_market_candidates(row: pd.Series) -> list[dict]:
     match_label = f"{row['home']} v {row['away']}"
     cands = []
 
+    def add(market: str, pick: str, prob, odds=None) -> None:
+        if pd.isna(prob):
+            return
+        cands.append({
+            "fixture_id": fid, "sport": "basketball", "match": match_label, "league": row["league"],
+            "market": market, "pick": pick, "prob": float(prob),
+            "market_odds": float(odds) if pd.notna(odds) else None,
+        })
+
     prices_ml = [
         (f"{row['home']} ML", row["p_home"], row.get("odds_home")),
         (f"{row['away']} ML", row["p_away"], row.get("odds_away")),
     ]
     label, prob, odds = max(prices_ml, key=lambda x: x[1])
-    cands.append({
-        "fixture_id": fid, "sport": "basketball", "match": match_label, "league": row["league"],
-        "market": "Moneyline", "pick": label, "prob": float(prob),
-        "market_odds": float(odds) if pd.notna(odds) else None,
-    })
+    add("Moneyline", label, prob, odds)
+
+    alt_spreads = [
+        (f"{row['home']} +5.5", row.get("p_home_plus55")),
+        (f"{row['away']} +5.5", row.get("p_away_plus55")),
+        (f"{row['home']} +9.5", row.get("p_home_plus95")),
+        (f"{row['away']} +9.5", row.get("p_away_plus95")),
+    ]
+    label, prob = max(alt_spreads, key=lambda x: x[1] if pd.notna(x[1]) else -1)
+    add("Alt Spread", label, prob)
 
     if pd.notna(row.get("p_home_cover")) and pd.notna(row.get("p_away_cover")):
         spread_home = row.get("spread_home")
@@ -111,11 +146,7 @@ def _basketball_market_candidates(row: pd.Series) -> list[dict]:
             (f"{row['away']} {away_line}".strip(), row["p_away_cover"], row.get("odds_spread_away")),
         ]
         label, prob, odds = max(prices_spread, key=lambda x: x[1])
-        cands.append({
-            "fixture_id": fid, "sport": "basketball", "match": match_label, "league": row["league"],
-            "market": "Spread", "pick": label, "prob": float(prob),
-            "market_odds": float(odds) if pd.notna(odds) else None,
-        })
+        add("Spread", label, prob, odds)
 
     if pd.notna(row.get("total_line")) and pd.notna(row.get("p_over_total")) and pd.notna(row.get("p_under_total")):
         line = f"{float(row['total_line']):g}"
@@ -124,11 +155,7 @@ def _basketball_market_candidates(row: pd.Series) -> list[dict]:
             (f"Under {line}", row["p_under_total"], row.get("odds_under")),
         ]
         label, prob, odds = max(prices_total, key=lambda x: x[1])
-        cands.append({
-            "fixture_id": fid, "sport": "basketball", "match": match_label, "league": row["league"],
-            "market": "Totals", "pick": label, "prob": float(prob),
-            "market_odds": float(odds) if pd.notna(odds) else None,
-        })
+        add("Totals", label, prob, odds)
 
     return cands
 
@@ -199,6 +226,7 @@ def _assemble_target_market_odds(
     min_prob: float,
     target_odds: float,
     max_legs: int,
+    used_counts: dict[str, int] | None = None,
 ) -> pd.DataFrame:
     """
     Build a priced accumulator from the best available consolidated picks.
@@ -214,6 +242,11 @@ def _assemble_target_market_odds(
     if priced.empty:
         return pd.DataFrame()
 
+    if used_counts:
+        priced["_usage"] = priced["fixture_id"].astype(str).map(used_counts).fillna(0).astype(int)
+    else:
+        priced["_usage"] = 0
+
     floors = [min_prob, 0.50, 0.45, 0.40, 0.35, 0.30]
     thresholds = []
     for floor in floors:
@@ -225,8 +258,8 @@ def _assemble_target_market_odds(
     best_odds = 0.0
     for threshold in thresholds:
         eligible = priced[priced["prob"] >= threshold].sort_values(
-            ["prob", "edge", "market_odds"],
-            ascending=[False, False, False],
+            ["_usage", "prob", "edge", "market_odds"],
+            ascending=[True, False, False, False],
         )
         picked = []
         used_fixtures: set[str] = set()
@@ -249,6 +282,50 @@ def _assemble_target_market_odds(
     if len(best_picked) < 2:
         return pd.DataFrame()
     return pd.DataFrame(best_picked).reset_index(drop=True)
+
+
+def _assemble_target_payout_ladder(
+    pool: pd.DataFrame,
+    *,
+    count: int,
+    stake: float,
+    target_payout: float,
+    min_prob: float,
+    max_legs: int,
+) -> dict[str, pd.DataFrame]:
+    """
+    Build multiple diversified attempts at a target payout.
+
+    This is still an accumulator long-shot, so "safe" means the least unsafe
+    construction available from priced legs: high model probability first,
+    one pick per fixture, and later slips prefer unused fixtures before reusing
+    anything from earlier slips.
+    """
+    if stake <= 0 or target_payout <= stake or count <= 0:
+        return {}
+
+    target_odds = target_payout / stake
+    out: dict[str, pd.DataFrame] = {}
+    used_counts: dict[str, int] = {}
+    floors = [min_prob, max(0.55, min_prob - 0.05), 0.50, 0.45, 0.40, 0.35]
+
+    for idx in range(1, count + 1):
+        floor = floors[min(idx - 1, len(floors) - 1)]
+        legs = _assemble_target_market_odds(
+            pool,
+            min_prob=floor,
+            target_odds=target_odds,
+            max_legs=max_legs,
+            used_counts=used_counts,
+        )
+        if legs.empty:
+            continue
+
+        out[f"HUNDRED_K_SAFE_{idx}"] = legs
+        for fixture_id in legs["fixture_id"].astype(str):
+            used_counts[fixture_id] = used_counts.get(fixture_id, 0) + 1
+
+    return out
 
 
 def _slip_stats(legs: pd.DataFrame) -> dict:
@@ -316,6 +393,24 @@ def build_slips(predictions: pd.DataFrame, slip_cfg: dict) -> dict:
         )
         if not legs.empty:
             out["ONE_CEDI_DREAM"] = {"legs": legs, "stats": _slip_stats(legs)}
+
+    if slip_cfg.get("hundred_k_enabled", True):
+        stake = float(slip_cfg.get("hundred_k_stake", 1.0))
+        target_payout = float(slip_cfg.get("hundred_k_target_payout", 100000.0))
+        ladder = _assemble_target_payout_ladder(
+            pool,
+            count=int(slip_cfg.get("hundred_k_slip_count", 5)),
+            stake=stake,
+            target_payout=target_payout,
+            min_prob=float(slip_cfg.get("hundred_k_min_leg_prob", 0.55)),
+            max_legs=int(slip_cfg.get("hundred_k_max_legs", 40)),
+        )
+        for name, legs in ladder.items():
+            stats = _slip_stats(legs)
+            stats["target_stake"] = stake
+            stats["target_payout"] = target_payout
+            stats["target_odds"] = target_payout / stake if stake > 0 else None
+            out[name] = {"legs": legs, "stats": stats}
 
     # VALUE slip — needs market odds
     if pool["market_odds"].notna().any():

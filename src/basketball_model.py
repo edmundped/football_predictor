@@ -200,6 +200,11 @@ def predict_fixtures(
 
         p_home = _prob_margin_over(0.0, mean_margin, margin_std)
         p_away = 1.0 - p_home
+        p_home_plus55 = _prob_margin_over(-5.5, mean_margin, margin_std)
+        p_away_plus55 = 1.0 - _prob_margin_over(5.5, mean_margin, margin_std)
+        p_home_plus95 = _prob_margin_over(-9.5, mean_margin, margin_std)
+        p_away_plus95 = 1.0 - _prob_margin_over(9.5, mean_margin, margin_std)
+        p_favorite_by_6 = _prob_margin_over(5.5, abs(mean_margin), margin_std)
 
         spread_home = getattr(row, "spread_home", None)
         spread_away = getattr(row, "spread_away", None)
@@ -237,6 +242,11 @@ def predict_fixtures(
             "pred_margin_home": round(mean_margin, 1),
             "p_home": p_home,
             "p_away": p_away,
+            "p_home_plus55": p_home_plus55,
+            "p_away_plus55": p_away_plus55,
+            "p_home_plus95": p_home_plus95,
+            "p_away_plus95": p_away_plus95,
+            "p_favorite_by_6": p_favorite_by_6,
             "fair_odds_home": _fair_odds(p_home),
             "fair_odds_away": _fair_odds(p_away),
             "spread_home": spread_home,

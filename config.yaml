@@ -92,6 +92,12 @@ slip:
   banker_100_target_odds: 100.0
   banker_100_min_leg_prob: 0.50
   banker_100_max_legs: 20
+  hundred_k_enabled: true
+  hundred_k_slip_count: 5
+  hundred_k_stake: 1.0
+  hundred_k_target_payout: 100000.0
+  hundred_k_min_leg_prob: 0.55
+  hundred_k_max_legs: 40
   value_min_edge: 0.05    # required (model_prob / market_implied - 1)
 
 # Optional shared code board. GitHub Pages cannot store public submissions by

@@ -173,7 +173,20 @@ def main() -> int:
     kelly_stakes: dict[str, dict] = {}
     for name, slip in slips.items():
         s = slip["stats"]
-        if name == "ONE_CEDI_DREAM" and s.get("combined_market_odds"):
+        target_stake = s.get("target_stake")
+        if target_stake and s.get("combined_market_odds"):
+            stake = min(float(target_stake), balance)
+            label = "100K Stake" if str(name).startswith("HUNDRED_K") else "Dream Stake"
+            ki = {
+                "edge": s.get("expected_value_per_unit") or 0.0,
+                "kelly_f": 0.0,
+                "recommended_stake": stake,
+                "capped": False,
+                "expected_profit": stake * (s.get("expected_value_per_unit") or 0.0),
+                "potential_payout": stake * s["combined_market_odds"],
+                "stake_label": label,
+            }
+        elif name == "ONE_CEDI_DREAM" and s.get("combined_market_odds"):
             stake = min(1.0, balance)
             ki = {
                 "edge": s.get("expected_value_per_unit") or 0.0,
@@ -226,6 +239,29 @@ def main() -> int:
             stake_str = f"  stake=GHS {ki['recommended_stake']:,.2f}" if ki.get("recommended_stake") else ""
             print(f"  {name:16s} legs={s['legs']}  P={s['combined_prob']*100:5.2f}%  "
                   f"fair_odds={s['combined_fair_odds']:6.2f}{market}{ev}{stake_str}")
+
+    if not all_predictions.empty:
+        pool = slip_builder.build_candidate_pool(all_predictions)
+        if not pool.empty:
+            print("\nMarket radar (highest model probabilities):")
+            top_prob = pool.sort_values(["prob", "fair_odds"], ascending=[False, True]).head(10)
+            for _, r in top_prob.iterrows():
+                print(
+                    f"  {r['sport']:<10s} {r['match'][:34]:34s}  "
+                    f"{r['market'][:13]:13s} {r['pick'][:24]:24s}  "
+                    f"P={r['prob']*100:5.1f}% fair={r['fair_odds']:5.2f}"
+                )
+
+            priced = pool[pool["market_odds"].notna()].copy()
+            if not priced.empty:
+                priced = priced.sort_values(["edge", "prob"], ascending=[False, False]).head(6)
+                print("\nBest priced edges:")
+                for _, r in priced.iterrows():
+                    print(
+                        f"  {r['sport']:<10s} {r['match'][:34]:34s}  "
+                        f"{r['pick'][:24]:24s} odds={r['market_odds']:5.2f} "
+                        f"fair={r['fair_odds']:5.2f} edge={r['edge']*100:+5.1f}%"
+                    )
 
     acc = accuracy_info.get("summary", {}).get("main", {})
     if acc.get("total"):

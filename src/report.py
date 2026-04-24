@@ -1183,6 +1183,8 @@ def _basketball_lean(row) -> tuple:
     return label, prob
 
 def _slip_badge(variant: str) -> str:
+    if variant.startswith("HUNDRED_K"):
+        return '<span class="badge badge-dream">100K</span>'
     css = {
         "SAFE": "badge-safe",
         "BALANCED": "badge-balanced",
@@ -1196,6 +1198,9 @@ def _slip_badge(variant: str) -> str:
     return f'<span class="badge {css}">{html.escape(label)}</span>'
 
 def _slip_title(variant: str) -> str:
+    if variant.startswith("HUNDRED_K"):
+        suffix = variant.rsplit("_", 1)[-1]
+        return f"100K Safest Route {suffix}"
     return {
         "ONE_CEDI_DREAM": "1 Cedi and a Small Dream",
     }.get(variant, f"{variant} slip")
@@ -1349,6 +1354,7 @@ def _render_slip_card(variant: str, slip: dict, kelly_info: dict) -> str:
     ev_str = f"{ev:+.3f}" if ev is not None and not (isinstance(ev, float) and math.isnan(ev)) else "—"
     ev_cls = "text-green" if (ev or 0) > 0 else "text-red"
     mk_odds = stats.get("combined_market_odds")
+    target_payout = stats.get("target_payout")
 
     stake   = kelly_info.get("recommended_stake", 0)
     payout  = kelly_info.get("potential_payout", 0)
@@ -1359,6 +1365,9 @@ def _render_slip_card(variant: str, slip: dict, kelly_info: dict) -> str:
     stake_str  = _money(stake) if stake > 0 else "—"
     payout_str = _money(payout) if payout > 0 else "—"
     edge_pct   = f"{edge*100:+.1f}%" if edge else "—"
+    target_hint = ""
+    if target_payout and mk_odds:
+        target_hint = f" · target {_money(target_payout)}"
 
     # build log_bet command stub
     leg_picks = "|".join(
@@ -1421,7 +1430,7 @@ def _render_slip_card(variant: str, slip: dict, kelly_info: dict) -> str:
         card_extra = " value-card"
     elif variant == "SAFE":
         card_extra = " safe-card"
-    elif variant == "ONE_CEDI_DREAM":
+    elif variant == "ONE_CEDI_DREAM" or variant.startswith("HUNDRED_K"):
         card_extra = " dream-card"
 
     return f"""
@@ -1431,7 +1440,7 @@ def _render_slip_card(variant: str, slip: dict, kelly_info: dict) -> str:
           {_slip_badge(variant)}
           <span class="slip-name">{html.escape(_slip_title(variant))}</span>
         </div>
-        <span style="color:var(--muted);font-size:.82rem">{stats['legs']} legs</span>
+        <span style="color:var(--muted);font-size:.82rem">{stats['legs']} legs{target_hint}</span>
       </div>
       <div class="slip-stats-row">
         <div class="slip-stat-cell"><div class="lbl">Comb. Prob</div><div class="val text-green">{_pct(stats['combined_prob'])}</div></div>
@@ -1652,6 +1661,27 @@ def _render_football(df: pd.DataFrame) -> str:
         lean, lp = _football_lean(r)
         time_s   = _time_label(r.get("date"))
         date_s   = _date_label(r.get("date")) + (f" {time_s}" if time_s else "")
+        total_pack = (
+            f"O1.5 {_pct(r.get('p_over15'))}"
+            f"<span class='row-sub'>O2.5 {_pct(r.get('p_over25'))} · U3.5 {_pct(r.get('p_under35'))}</span>"
+        )
+        double_chance = max(
+            [
+                ("1X", r.get("p_home_or_draw")),
+                ("X2", r.get("p_away_or_draw")),
+                ("12", r.get("p_home_or_away")),
+            ],
+            key=lambda item: float(item[1]) if item[1] is not None and not (isinstance(item[1], float) and math.isnan(item[1])) else -1,
+        )
+        team_goal = max(
+            [
+                (f"{r.get('home')} 0.5+", r.get("p_home_over05")),
+                (f"{r.get('away')} 0.5+", r.get("p_away_over05")),
+                (f"{r.get('home')} 1.5+", r.get("p_home_over15")),
+                (f"{r.get('away')} 1.5+", r.get("p_away_over15")),
+            ],
+            key=lambda item: float(item[1]) if item[1] is not None and not (isinstance(item[1], float) and math.isnan(item[1])) else -1,
+        )
         rows.append(
             "<tr>"
             f"<td class='num'>{html.escape(date_s)}</td>"
@@ -1660,9 +1690,12 @@ def _render_football(df: pd.DataFrame) -> str:
             f"<td class='num'>{_num(r.get('lambda_home'),2)} – {_num(r.get('lambda_away'),2)}</td>"
             f"<td><strong>{html.escape(lean)}</strong><span class='row-sub'>{_pct(lp)}</span></td>"
             f"<td class='num'>{_pct(r.get('p_home'))} / {_pct(r.get('p_draw'))} / {_pct(r.get('p_away'))}</td>"
-            f"<td class='num text-green'>{_pct(r.get('p_over25'))}</td>"
+            f"<td class='num text-green'><strong>{html.escape(double_chance[0])}</strong><span class='row-sub'>{_pct(double_chance[1])}</span></td>"
+            f"<td class='num'>{total_pack}</td>"
             f"<td class='num'>{_pct(r.get('p_btts'))}</td>"
+            f"<td class='num'><strong>{_esc(team_goal[0])}</strong><span class='row-sub'>{_pct(team_goal[1])}</span></td>"
             f"<td class='num'>{_esc(r.get('top1_score'))}<span class='row-sub'>{_pct(r.get('top1_prob'))}</span></td>"
+            f"<td class='num'>{_pct(r.get('confidence_gap'))}</td>"
             f"<td class='num'>{_odds(r.get('odds_home'))} / {_odds(r.get('odds_draw'))} / {_odds(r.get('odds_away'))}</td>"
             "</tr>"
         )
@@ -1672,7 +1705,8 @@ def _render_football(df: pd.DataFrame) -> str:
         <table>
           <thead><tr>
             <th>Date</th><th>League</th><th>Match</th><th>xG</th><th>Lean</th>
-            <th>1X2</th><th>Over 2.5</th><th>BTTS</th><th>Top Score</th><th>Odds H/D/A</th>
+            <th>1X2</th><th>Double</th><th>Totals</th><th>BTTS</th><th>Team Goal</th>
+            <th>Top Score</th><th>Gap</th><th>Odds H/D/A</th>
           </tr></thead>
           <tbody>{"".join(rows)}</tbody>
         </table>
@@ -1960,8 +1994,8 @@ def render(
     <div class="section-head"><div><h2>Prediction accuracy</h2><div class="hint">Completed tracked fixtures · scores joined from source data</div></div></div>
     {_render_accuracy(accuracy)}
   </div>
-  <div id="tab-football"   class="panel">
-    <div class="section-head"><div><h2>Football predictions</h2><div class="hint">1X2 · Totals · BTTS · Top scoreline</div></div></div>
+    <div id="tab-football"   class="panel">
+    <div class="section-head"><div><h2>Football predictions</h2><div class="hint">1X2 · double chance · totals ladder · BTTS · team goals · top scoreline</div></div></div>
     {_render_football(football)}
   </div>
   <div id="tab-basketball" class="panel">
