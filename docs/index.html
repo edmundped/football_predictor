@@ -1458,7 +1458,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <div class="header-title">Betting Command Center</div>
     <div class="header-sub">Slip strategy, market radar, odds checks, bankroll, and fixture intelligence</div>
     <div class="pills-row">
-      <span class="pill">Run <strong>24 Apr 2026 19:07</strong></span>
+      <span class="pill">Run <strong>24 Apr 2026 19:15</strong></span>
       <span class="pill">Window <strong>Fri 24 Apr – Mon 27 Apr</strong></span>
       <span class="pill"><strong>171</strong> fixtures</span>
       <span class="pill"><strong>10</strong> slips</span>
@@ -1895,6 +1895,46 @@ document.addEventListener('DOMContentLoaded', () => {
         </table>
       </div>
     </article>
+    <article class="slip-card value-card">
+      <div class="slip-header">
+        <div class="slip-title-row">
+          <span class="badge badge-value">VALUE</span>
+          <span class="slip-name">VALUE slip</span>
+        </div>
+        <span style="color:var(--muted);font-size:.82rem">4 legs</span>
+      </div>
+      <div class="slip-stats-row">
+        <div class="slip-stat-cell"><div class="lbl">Comb. Prob</div><div class="val text-green">28.3%</div></div>
+        <div class="slip-stat-cell"><div class="lbl">Fair Odds</div><div class="val">3.53</div></div>
+        <div class="slip-stat-cell"><div class="lbl">Market Odds</div><div class="val">17.43</div></div>
+        <div class="slip-stat-cell"><div class="lbl">EV / unit</div><div class="val text-green">+3.935</div></div>
+      </div>
+
+        <div class="kelly-banner">
+          <div class="kelly-left">
+            <div class="kl">Kelly Stake <span style='font-size:.7rem;color:var(--muted)'>(capped)</span></div>
+            <div class="ks">GHS 5.00</div>
+          </div>
+          <div class="kelly-right">
+            <div class="kl">Potential Payout</div>
+            <div class="ks">GHS 87.17</div>
+          </div>
+        </div>
+
+        <div class="copy-cmd">
+          <code>python log_result.py --log --slip VALUE --stake 5.00 --odds 17.43</code>
+          <button class="copy-btn" onclick="copyText('python log_result.py --log --slip VALUE --stake 5.00 --odds 17.43', this)">Copy</button>
+        </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Sport</th><th>Match</th><th>Market</th><th>Pick</th>
+            <th>Prob</th><th>Fair</th><th>Odds</th><th>Edge</th>
+          </tr></thead>
+          <tbody><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Houston Rockets v Los Angeles Lakers<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 206.5</td><td class='num text-green'>83.4%</td><td class='num'>1.20</td><td class='num'>1.91</td><td class='num edge-pos'>+59.2%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Orlando Magic v Detroit Pistons<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 213.5</td><td class='num text-green'>75.8%</td><td class='num'>1.32</td><td class='num'>1.95</td><td class='num edge-pos'>+47.9%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Atlanta Hawks v New York Knicks<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 214.5</td><td class='num text-green'>77.2%</td><td class='num'>1.30</td><td class='num'>1.91</td><td class='num edge-pos'>+47.4%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Atromitos v Asteras Tripolis<span class='row-sub'>G1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>58.0%</td><td class='num'>1.72</td><td class='num'>2.45</td><td class='num edge-pos'>+42.1%</td></tr></tbody>
+        </table>
+      </div>
+    </article>
     <article class="slip-card dream-card">
       <div class="slip-header">
         <div class="slip-title-row">
@@ -2132,46 +2172,6 @@ document.addEventListener('DOMContentLoaded', () => {
             <th>Prob</th><th>Fair</th><th>Odds</th><th>Edge</th>
           </tr></thead>
           <tbody><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Coventry v Wrexham<span class='row-sub'>E1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>55.5%</td><td class='num'>1.80</td><td class='num'>2.10</td><td class='num edge-pos'>+16.5%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Chesterfield v Crewe<span class='row-sub'>E3</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>55.4%</td><td class='num'>1.80</td><td class='num'>1.56</td><td class='num edge-neg'>-13.5%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Heidenheim v St Pauli<span class='row-sub'>D1</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 2.5</td><td class='num text-green'>55.4%</td><td class='num'>1.80</td><td class='num'>1.91</td><td class='num edge-pos'>+5.9%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Toulouse v Monaco<span class='row-sub'>F1</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 2.5</td><td class='num text-green'>55.4%</td><td class='num'>1.80</td><td class='num'>1.67</td><td class='num edge-neg'>-7.4%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Birmingham v Bristol City<span class='row-sub'>E1</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Under 2.5</td><td class='num text-green'>55.1%</td><td class='num'>1.81</td><td class='num'>2.00</td><td class='num edge-pos'>+10.2%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Vallecano v Sociedad<span class='row-sub'>SP1</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Under 2.5</td><td class='num text-green'>55.1%</td><td class='num'>1.82</td><td class='num'>1.80</td><td class='num edge-neg'>-0.8%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Sudtirol v Mantova<span class='row-sub'>I2</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Under 2.5</td><td class='num text-green'>55.0%</td><td class='num'>1.82</td><td class='num'>1.80</td><td class='num edge-neg'>-0.9%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Cesena v Sampdoria<span class='row-sub'>I2</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Under 2.5</td><td class='num text-green'>55.0%</td><td class='num'>1.82</td><td class='num'>1.73</td><td class='num edge-neg'>-4.8%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Dundee United v Dundee<span class='row-sub'>SC0</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 2.5</td><td class='num text-green'>54.9%</td><td class='num'>1.82</td><td class='num'>1.73</td><td class='num edge-neg'>-5.0%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Avellino v Bari<span class='row-sub'>I2</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Under 2.5</td><td class='num text-green'>54.8%</td><td class='num'>1.82</td><td class='num'>1.73</td><td class='num edge-neg'>-5.2%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Reggiana v Palermo<span class='row-sub'>I2</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Under 2.5</td><td class='num text-green'>54.8%</td><td class='num'>1.83</td><td class='num'>1.90</td><td class='num edge-pos'>+4.1%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Tondela v Nacional<span class='row-sub'>P1</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Under 2.5</td><td class='num text-green'>54.7%</td><td class='num'>1.83</td><td class='num'>1.90</td><td class='num edge-pos'>+4.0%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Cordoba v Sp Gijon<span class='row-sub'>SP2</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Under 2.5</td><td class='num text-green'>54.7%</td><td class='num'>1.83</td><td class='num'>2.10</td><td class='num edge-pos'>+14.9%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Stoke v Portsmouth<span class='row-sub'>E1</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Under 2.5</td><td class='num text-green'>54.6%</td><td class='num'>1.83</td><td class='num'>1.83</td><td class='num edge-neg'>-0.2%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Malaga v Castellon<span class='row-sub'>SP2</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Under 2.5</td><td class='num text-green'>54.5%</td><td class='num'>1.84</td><td class='num'>2.20</td><td class='num edge-pos'>+19.9%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Norwich v Swansea<span class='row-sub'>E1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>54.3%</td><td class='num'>1.84</td><td class='num'>1.62</td><td class='num edge-neg'>-12.0%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Genclerbirligi v Kocaelispor<span class='row-sub'>T1</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Under 2.5</td><td class='num text-green'>54.2%</td><td class='num'>1.84</td><td class='num'>1.60</td><td class='num edge-neg'>-13.2%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Hibernian v Hearts<span class='row-sub'>SC0</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 2.5</td><td class='num text-green'>54.2%</td><td class='num'>1.84</td><td class='num'>1.93</td><td class='num edge-pos'>+4.6%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>QPR v Derby<span class='row-sub'>E1</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Under 2.5</td><td class='num text-green'>54.1%</td><td class='num'>1.85</td><td class='num'>2.00</td><td class='num edge-pos'>+8.3%</td></tr></tbody>
-        </table>
-      </div>
-    </article>
-    <article class="slip-card value-card">
-      <div class="slip-header">
-        <div class="slip-title-row">
-          <span class="badge badge-value">VALUE</span>
-          <span class="slip-name">VALUE slip</span>
-        </div>
-        <span style="color:var(--muted);font-size:.82rem">4 legs</span>
-      </div>
-      <div class="slip-stats-row">
-        <div class="slip-stat-cell"><div class="lbl">Comb. Prob</div><div class="val text-green">28.3%</div></div>
-        <div class="slip-stat-cell"><div class="lbl">Fair Odds</div><div class="val">3.53</div></div>
-        <div class="slip-stat-cell"><div class="lbl">Market Odds</div><div class="val">17.43</div></div>
-        <div class="slip-stat-cell"><div class="lbl">EV / unit</div><div class="val text-green">+3.935</div></div>
-      </div>
-
-        <div class="kelly-banner">
-          <div class="kelly-left">
-            <div class="kl">Kelly Stake <span style='font-size:.7rem;color:var(--muted)'>(capped)</span></div>
-            <div class="ks">GHS 5.00</div>
-          </div>
-          <div class="kelly-right">
-            <div class="kl">Potential Payout</div>
-            <div class="ks">GHS 87.17</div>
-          </div>
-        </div>
-
-        <div class="copy-cmd">
-          <code>python log_result.py --log --slip VALUE --stake 5.00 --odds 17.43</code>
-          <button class="copy-btn" onclick="copyText('python log_result.py --log --slip VALUE --stake 5.00 --odds 17.43', this)">Copy</button>
-        </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>Sport</th><th>Match</th><th>Market</th><th>Pick</th>
-            <th>Prob</th><th>Fair</th><th>Odds</th><th>Edge</th>
-          </tr></thead>
-          <tbody><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Houston Rockets v Los Angeles Lakers<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 206.5</td><td class='num text-green'>83.4%</td><td class='num'>1.20</td><td class='num'>1.91</td><td class='num edge-pos'>+59.2%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Orlando Magic v Detroit Pistons<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 213.5</td><td class='num text-green'>75.8%</td><td class='num'>1.32</td><td class='num'>1.95</td><td class='num edge-pos'>+47.9%</td></tr><tr><td><span class='sport-pill'>Basketball</span></td><td class='match-col'>Atlanta Hawks v New York Knicks<span class='row-sub'>NBA</span></td><td><span class='market-pill'>Totals</span></td><td style='font-weight:700'>Over 214.5</td><td class='num text-green'>77.2%</td><td class='num'>1.30</td><td class='num'>1.91</td><td class='num edge-pos'>+47.4%</td></tr><tr><td><span class='sport-pill'>Football</span></td><td class='match-col'>Atromitos v Asteras Tripolis<span class='row-sub'>G1</span></td><td><span class='market-pill'>1X2</span></td><td style='font-weight:700'>Home win</td><td class='num text-green'>58.0%</td><td class='num'>1.72</td><td class='num'>2.45</td><td class='num edge-pos'>+42.1%</td></tr></tbody>
         </table>
       </div>
     </article></div></div>

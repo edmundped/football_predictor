@@ -1910,7 +1910,10 @@ def _render_slip_card(variant: str, slip: dict, kelly_info: dict) -> str:
 def _render_slips(slips: dict, kelly: dict) -> str:
     if not slips:
         return "<div class='empty'>No slip variants available. Widen lookahead_days or check data freshness.</div>"
-    cards = [_render_slip_card(name, slip, kelly.get(name, {})) for name, slip in slips.items()]
+    preferred_order = ["SAFE", "BALANCED", "AGGRESSIVE", "VALUE", "ONE_CEDI_DREAM"]
+    ordered_names = [name for name in preferred_order if name in slips]
+    ordered_names.extend(name for name in slips if name not in ordered_names)
+    cards = [_render_slip_card(name, slips[name], kelly.get(name, {})) for name in ordered_names]
     return f'<div class="slip-grid">{"".join(cards)}</div>'
 
 
