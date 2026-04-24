@@ -938,6 +938,364 @@ footer {
 @media (max-width: 760px) {
   .code-form-grid { grid-template-columns: 1fr; }
 }
+
+/* ── SPORTSBOOK COMMAND CENTER SKIN ── */
+:root {
+  --bg:        #07120f;
+  --bg2:       #0c1b16;
+  --card:      #0f211a;
+  --card2:     #142b22;
+  --border:    #1f3a30;
+  --border2:   #2d5546;
+  --text:      #f4fbf7;
+  --muted:     #8aa399;
+  --muted2:    #b8c9c1;
+  --green:     #18d26e;
+  --green-dim: rgba(24,210,110,0.13);
+  --red:       #ff4b5f;
+  --red-dim:   rgba(255,75,95,0.13);
+  --gold:      #ffbf45;
+  --gold-dim:  rgba(255,191,69,0.14);
+  --blue:      #45a6ff;
+  --blue-dim:  rgba(69,166,255,0.14);
+  --purple:    #b47cff;
+  --purple-dim:rgba(180,124,255,0.14);
+  --accent:    #18d26e;
+}
+
+body {
+  background:
+    linear-gradient(180deg, rgba(7,18,15,0.86), #07120f 260px),
+    url("https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1800&q=78") center top / cover fixed;
+}
+
+.header {
+  background: linear-gradient(120deg, rgba(5,16,13,.96), rgba(8,37,27,.92));
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.header::before {
+  display: block;
+  background:
+    linear-gradient(90deg, rgba(24,210,110,.12) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255,255,255,.06) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent);
+}
+.header-inner { max-width: 1440px; padding: 26px 28px 22px; }
+.brand-icon {
+  background: var(--green);
+  color: #062014;
+  border-radius: 6px;
+  box-shadow: 0 12px 28px rgba(24,210,110,.24);
+}
+.brand-name, .header-title { color: #fff; }
+.header-title {
+  max-width: 760px;
+  font-size: clamp(2.2rem, 5vw, 4.7rem);
+  letter-spacing: -.045em;
+}
+.header-sub {
+  max-width: 760px;
+  color: #d6e7df;
+  font-size: 1rem;
+}
+.live-badge {
+  background: rgba(24,210,110,.12);
+  border-color: rgba(24,210,110,.38);
+  color: var(--green);
+}
+.live-dot { background: var(--green); }
+.pill {
+  min-height: 34px;
+  border-radius: 6px;
+  background: rgba(255,255,255,.07);
+  border-color: rgba(255,255,255,.12);
+  color: #dbe9e3;
+}
+.pill.green {
+  background: rgba(24,210,110,.16);
+  border-color: rgba(24,210,110,.36);
+}
+.ticker-strip {
+  background: #07120f;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+.ticker-item {
+  min-height: 40px;
+  border-right-color: rgba(255,255,255,.08);
+}
+.ticker-item .league {
+  background: rgba(255,255,255,.08);
+  border-radius: 4px;
+  color: #d7e6df;
+  padding: 2px 6px;
+}
+.shell { max-width: 1440px; padding: 0 28px 56px; }
+.nav-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin: 0 -28px 24px;
+  padding: 0 28px;
+  background: rgba(7,18,15,.92);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.nav-tab {
+  min-height: 54px;
+  border-bottom-width: 3px;
+  color: #aec5bb;
+  font-weight: 800;
+}
+.nav-tab[aria-selected="true"] {
+  color: #fff;
+  border-bottom-color: var(--green);
+}
+.tab-icon { display: none; }
+
+.bet-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(360px, .85fr);
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.bet-hero-main,
+.bet-hero-side,
+.market-board {
+  border: 1px solid rgba(255,255,255,.1);
+  background: linear-gradient(145deg, rgba(15,33,26,.96), rgba(8,22,17,.96));
+  box-shadow: 0 18px 55px rgba(0,0,0,.28);
+}
+.bet-hero-main {
+  min-height: 310px;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  padding: 28px;
+}
+.bet-hero-main::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(120deg, rgba(24,210,110,.18), transparent 42%),
+    radial-gradient(circle at 82% 22%, rgba(255,191,69,.18), transparent 28%),
+    url("https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=1200&q=70") center / cover;
+  opacity: .28;
+}
+.bet-hero-main > * { position: relative; }
+.hero-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(24,210,110,.15);
+  border: 1px solid rgba(24,210,110,.28);
+  color: var(--green);
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.hero-title {
+  max-width: 740px;
+  color: #fff;
+  font-size: clamp(2rem, 4vw, 4.1rem);
+  font-weight: 950;
+  letter-spacing: -.045em;
+  line-height: .96;
+}
+.hero-copy {
+  max-width: 700px;
+  margin-top: 12px;
+  color: #cfe2d9;
+  font-size: 1rem;
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+.hero-btn {
+  appearance: none;
+  min-height: 42px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 6px;
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  padding: 10px 14px;
+}
+.hero-btn.primary {
+  background: var(--green);
+  border-color: var(--green);
+  color: #052015;
+}
+.bet-hero-side {
+  border-radius: 8px;
+  padding: 18px;
+}
+.bet-hero-side h3,
+.market-board h3 {
+  font-size: .78rem;
+  color: var(--muted2);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.ticket-stack {
+  display: grid;
+  gap: 10px;
+}
+.ticket-mini {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 6px;
+  background: rgba(255,255,255,.045);
+}
+.ticket-mini strong {
+  color: #fff;
+  font-size: .92rem;
+}
+.ticket-mini .ticket-meta {
+  color: var(--muted);
+  font-size: .76rem;
+  margin-top: 2px;
+}
+.ticket-mini .ticket-odds {
+  align-self: center;
+  color: var(--gold);
+  font-size: 1.05rem;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+}
+.market-board {
+  border-radius: 8px;
+  padding: 18px;
+  margin-bottom: 22px;
+}
+.market-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.market-tile {
+  min-height: 112px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 6px;
+  background: rgba(255,255,255,.045);
+  padding: 12px;
+}
+.market-tile .market-name {
+  color: var(--muted);
+  font-size: .68rem;
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.market-tile .market-pick {
+  margin-top: 8px;
+  color: #fff;
+  font-weight: 900;
+  line-height: 1.25;
+}
+.market-tile .market-match {
+  color: var(--muted2);
+  font-size: .75rem;
+  margin-top: 4px;
+}
+.market-tile .market-prob {
+  color: var(--green);
+  font-size: 1.22rem;
+  font-weight: 950;
+  margin-top: 8px;
+}
+
+.stat-grid { gap: 12px; }
+.stat-card,
+.match-card,
+.slip-card,
+.code-form,
+.pending-card,
+.empty,
+.bankroll-hero {
+  border-radius: 8px;
+  background: rgba(15,33,26,.96);
+  border-color: rgba(255,255,255,.1);
+  box-shadow: 0 12px 35px rgba(0,0,0,.18);
+}
+.stat-card::after { height: 4px; }
+.stat-label, th { color: #9fb8ad; }
+.stat-value { color: #fff; }
+.fixture-ticker {
+  grid-auto-columns: minmax(250px, 280px);
+}
+.match-card {
+  min-height: 170px;
+  display: flex;
+  flex-direction: column;
+}
+.match-teams { flex: 1; }
+.match-teams .team { color: #fff; font-size: .98rem; }
+.match-lean {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top-color: rgba(255,255,255,.1);
+}
+.slip-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.slip-card {
+  border-radius: 8px;
+  background: rgba(15,33,26,.98);
+}
+.slip-card.dream-card {
+  background: linear-gradient(145deg, rgba(48,34,12,.98), rgba(16,28,20,.98));
+  border-color: rgba(255,191,69,.34);
+}
+.slip-header,
+.slip-card.dream-card .slip-header,
+.slip-card.dream-card .slip-stat-cell {
+  background: rgba(255,255,255,.045);
+}
+.slip-stats-row { background: rgba(255,255,255,.1); }
+.slip-stat-cell { background: rgba(8,22,17,.72); }
+.badge, .league-tag, .sport-pill, .market-pill { border-radius: 4px; }
+.table-wrap { max-height: 420px; }
+th {
+  background: #0a1712;
+  color: #b4c9bf;
+}
+td { border-bottom-color: rgba(255,255,255,.07); }
+tbody tr:hover td { background: rgba(255,255,255,.04); }
+.copy-cmd,
+.field input {
+  background: rgba(255,255,255,.045);
+  border-color: rgba(255,255,255,.12);
+}
+.copy-btn,
+.submit-btn {
+  border-radius: 5px;
+}
+
+@media (max-width: 1100px) {
+  .bet-hero { grid-template-columns: 1fr; }
+  .market-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .shell { padding-left: 14px; padding-right: 14px; }
+  .nav-tabs { margin-left: -14px; margin-right: -14px; padding-left: 14px; padding-right: 14px; }
+  .bet-hero-main { padding: 20px; min-height: 280px; }
+  .hero-title { font-size: 2.25rem; }
+  .market-grid { grid-template-columns: 1fr; }
+  .slip-grid { grid-template-columns: 1fr; }
+}
 </style>
 """
 
@@ -1109,7 +1467,10 @@ def _esc(v) -> str:
 def _pct(x, dash="—") -> str:
     if x is None or (isinstance(x, float) and math.isnan(x)):
         return dash
-    return f"{float(x)*100:.1f}%"
+    pct = float(x) * 100
+    if 0 < pct < 0.1:
+        return f"{pct:.3f}%"
+    return f"{pct:.1f}%"
 
 def _odds(x) -> str:
     if x is None or (isinstance(x, float) and math.isnan(x)):
@@ -1250,6 +1611,71 @@ def _ticker_html(football: pd.DataFrame, basketball: pd.DataFrame) -> str:
     return f'<div class="ticker-strip"><div class="ticker-inner">{doubled}</div></div>'
 
 
+def _render_featured_tickets(slips: dict) -> str:
+    if not slips:
+        return "<div class='empty'>No active slips.</div>"
+
+    preferred = [
+        name for name in slips
+        if name.startswith("HUNDRED_K")
+    ][:3]
+    for name in ("VALUE", "SAFE", "ONE_CEDI_DREAM"):
+        if name in slips and name not in preferred:
+            preferred.append(name)
+    preferred = preferred[:4]
+
+    rows = []
+    for name in preferred:
+        stats = slips[name]["stats"]
+        ev = stats.get("expected_value_per_unit")
+        ev_text = f"{ev:+.3f}" if ev is not None and not (isinstance(ev, float) and math.isnan(ev)) else "—"
+        rows.append(f"""
+        <div class="ticket-mini">
+          <div>
+            <strong>{html.escape(_slip_title(name))}</strong>
+            <div class="ticket-meta">{stats.get('legs', 0)} legs · P {_pct(stats.get('combined_prob'))} · EV {ev_text}</div>
+          </div>
+          <div class="ticket-odds">{_odds(stats.get('combined_market_odds') or stats.get('combined_fair_odds'))}</div>
+        </div>""")
+    return "".join(rows)
+
+
+def _render_market_board(football: pd.DataFrame, basketball: pd.DataFrame) -> str:
+    try:
+        from . import slip_builder
+    except Exception:  # noqa: BLE001
+        return ""
+
+    frames = [
+        df.dropna(axis=1, how="all")
+        for df in (football, basketball)
+        if df is not None and not df.empty
+    ]
+    if not frames:
+        return ""
+
+    pool = slip_builder.build_candidate_pool(pd.concat(frames, ignore_index=True, sort=False))
+    if pool.empty:
+        return ""
+
+    tiles = []
+    top = pool.sort_values(["prob", "fair_odds"], ascending=[False, True]).head(8)
+    for _, r in top.iterrows():
+        tiles.append(f"""
+        <article class="market-tile">
+          <div class="market-name">{_esc(r.get('market'))}</div>
+          <div class="market-pick">{_esc(r.get('pick'))}</div>
+          <div class="market-match">{_esc(r.get('match'))}</div>
+          <div class="market-prob">{_pct(r.get('prob'))}</div>
+        </article>""")
+
+    return f"""
+    <section class="market-board">
+      <h3>Market Radar</h3>
+      <div class="market-grid">{"".join(tiles)}</div>
+    </section>"""
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Overview tab
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1334,9 +1760,28 @@ def _render_overview(football: pd.DataFrame, basketball: pd.DataFrame, slips: di
           </div>
         </article>""")
     ticker = f'<div class="fixture-ticker">{"".join(cards)}</div>' if cards else '<div class="empty">No fixtures in window.</div>'
+    market_board = _render_market_board(football, basketball)
+    featured = _render_featured_tickets(slips)
 
     return f"""
-    <div class="section-head"><div><h2>Today's board</h2><div class="hint">{_date_range(football, basketball)}</div></div></div>
+    <section class="bet-hero">
+      <div class="bet-hero-main">
+        <div class="hero-kicker">Model board · {_date_range(football, basketball)}</div>
+        <div class="hero-title">Find the best route through today’s slate.</div>
+        <div class="hero-copy">Prioritized slips, high-confidence markets, live fixture windows, and bankroll context are grouped into one betting desk.</div>
+        <div class="hero-actions">
+          <button class="hero-btn primary" onclick="showTab('tab-slips')" type="button">View Slips</button>
+          <button class="hero-btn" onclick="showTab('tab-football')" type="button">Football Board</button>
+          <button class="hero-btn" onclick="showTab('tab-bankroll')" type="button">Bankroll</button>
+        </div>
+      </div>
+      <aside class="bet-hero-side">
+        <h3>Featured Tickets</h3>
+        <div class="ticket-stack">{featured}</div>
+      </aside>
+    </section>
+    {market_board}
+    <div class="section-head"><div><h2>Desk Snapshot</h2><div class="hint">{_date_range(football, basketball)}</div></div></div>
     {stats_html}
     <div class="section-head"><div><h2>Upcoming fixtures</h2></div></div>
     {ticker}
@@ -1962,8 +2407,8 @@ def render(
         <div class="live-badge"><div class="live-dot"></div>Live</div>
       </div>
     </div>
-    <div class="header-title">Today's Betting Board</div>
-    <div class="header-sub">Fixtures, odds, score checks, bankroll, and community codes</div>
+    <div class="header-title">Betting Command Center</div>
+    <div class="header-sub">Slip strategy, market radar, odds checks, bankroll, and fixture intelligence</div>
     <div class="pills-row">
       <span class="pill">Run <strong>{run_ts.strftime('%d %b %Y %H:%M')}</strong></span>
       <span class="pill">Window <strong>{html.escape(date_range)}</strong></span>
@@ -1994,7 +2439,7 @@ def render(
     <div class="section-head"><div><h2>Prediction accuracy</h2><div class="hint">Completed tracked fixtures · scores joined from source data</div></div></div>
     {_render_accuracy(accuracy)}
   </div>
-    <div id="tab-football"   class="panel">
+  <div id="tab-football"   class="panel">
     <div class="section-head"><div><h2>Football predictions</h2><div class="hint">1X2 · double chance · totals ladder · BTTS · team goals · top scoreline</div></div></div>
     {_render_football(football)}
   </div>
